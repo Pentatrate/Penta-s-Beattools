@@ -8,7 +8,7 @@ You should only use this tool if you know what you're doing as step 2 requires y
 # HOW TO USE:
 0. Save your level. Beatblock may crash when you make an error here.
 1. Copy the .png file and the .json file into your level files
-2. Use the functions below to build and animate your text groups similarly to using deco events.
+2. Use the commented functions to build and animate your text groups similarly to using deco events.
   The comments and example code will help you.
   Using a rich text editor like VSCode will help you
 3. Open a new tab in your browser.
