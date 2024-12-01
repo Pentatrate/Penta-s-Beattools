@@ -1,6 +1,6 @@
 # Text-Group-Generator
 BeatBlock Text Group Generator
-Text group generator by Pentatrate
+by Pentatrate
 
 # HOW TO USE:
 0. Save your level. Beatblock may crash when you make an error here.
