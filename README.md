@@ -5,7 +5,7 @@ by Pentatrate
 
 You should only use this tool if you know what you're doing as step 3 requires you to have minimal knowledge of how to code.
 
-# HOW TO USE:
+# How to use:
 0. Save your level. Beatblock may crash when you make an error here.
 
 1. Copy the .png file and the .json file into your level files.
