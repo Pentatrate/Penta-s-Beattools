@@ -1,0 +1,84 @@
+/*=================================================================================================
+Untagger (by Pentatrate) v.1.8
+
+Description:
+    Replaces all Run Tag Events for one Tag with its individual Events.
+
+How to use:
+    1. Trust this code (very important).
+
+    2. Open a new tab in your browser.
+
+    3. Open the console of that tab (Ctrl + Shift + I for Chrome).
+
+    4. Paste the code below in the console and press enter.
+       It will return undefined.
+
+    5. Save your level if you are in the editor to update the level files.
+
+    6. Paste "untagger()" in the console and press enter.
+
+    7. Answer the prompts.
+       You will need your to paste data from your level files for this step.
+
+    8. Paste the new logged data back into the CORRECT level files.
+        FULLY REPLACE the old data.
+
+    9. Exit the level (without saving) if you are in the editor and reopen it ingame.
+
+    10. Repeat step 5, 6, 7, 8 and 9 for all Tags you want to untag.
+
+    (11. Also please report any errors to me (.pentatrate).)
+=================================================================================================*/
+
+function untagger() {
+    // Declare Vars and require Level Data
+    const belongsToChart = ["block", "hold", "inverse", "mine", "mineHold", "side", "extraTap"];
+    let level = JSON.parse(window.prompt("Enter full Level Data (level.json)")), chart, tags = [], tag, tagEvents, needsChartData, tempTagEvents, untaggedEvents = [], runTagEventsUntagged = 0;
+    if (level == "") { console.log("Didn't enter anything"); return; }
+    // Check for Run Tag Events
+    level.events.forEach(event => { event.type == "tag" && !tags.includes(event.tag) && (tags.push(event.tag)) }),
+        console.log("Tags untagged: " + tags.join(", ")),
+        tags.includes("") && (window.alert("Empty Run Tag Event detected"));
+    // Select Tag
+    if (tags.length == 0) { window.alert("No Run Tag Event to untag"); return; } else if (tags.length == 1) { tag = tags[0]; } else { do { tag = window.prompt("Select from Tags: " + tags.join(", ")) } while (!tags.includes(tag)); }
+    // Require Tag Data
+    console.log(`Untagging ${tag}.`),
+        tagEvents = JSON.parse(window.prompt(`Enter full Tag Data for ${tag} (${tag}.json)`)),
+        needsChartData = tagEvents.some((event => belongsToChart.includes(event.type)));
+    if (tagEvents == "") { console.log("Didn't enter anything"); return; }
+    if (tagEvents == "[]") { console.log(`Nothing in the Tag (Continue to remove all ${tag} Tags)`); }
+    // Require Chart Data
+    needsChartData && (chart = JSON.parse(window.prompt("Enter full Chart Data (chart.json)")));
+    // Warnings
+    tagEvents.some(event => event.type == "play") && (window.alert("Play Song Events in Tags may lead to duplicates when untagging")),
+        tagEvents.some(event => event.type == "showResults") && (window.alert("Show Results Events in Tags may lead to duplicates when untagging")),
+        tagEvents.some(event => event.type == "bookmark") && (window.alert("Bookmark Events don't belong in Tags"));
+    // Untagging
+    for (let index = 0; index < level.events.length; index++) {
+        const event = level.events[index];
+        if (event.type != "tag" || event.tag != tag) { continue; }
+        tempTagEvents = JSON.parse(JSON.stringify(tagEvents)); // Unpointer Code
+        for (const i in tempTagEvents) {
+            tempTagEvents[i].time = tagEvents[i].time + event.time;
+            event.angleOffset && (tempTagEvents[i].angle = tagEvents[i].angle + event.angle);
+        }
+        untaggedEvents.push(...tempTagEvents), level.events.splice(index, 1), index--, runTagEventsUntagged++;
+    }
+    // Warning
+    if (untaggedEvents.length == 0) { window.alert(`Nothing to untag (Continue to remove all ${tag} Tags)`); }
+    // Log new data
+    window.alert("Please paste the data logged in the console into your Level data"),
+        level.events.push(...untaggedEvents.filter((event => !belongsToChart.includes(event.type)))),
+        console.log(JSON.stringify(level)),
+        console.log("Level Data above (level.json)"),
+        needsChartData && (
+            window.alert("Please paste the data logged in the console into your Chart data"),
+            chart.push(...untaggedEvents.filter((event => belongsToChart.includes(event.type)))),
+            console.log(JSON.stringify(chart)),
+            console.log("Chart Data above (chart.json)")
+        );
+    // Log bonus data
+    tags = [], level.events.forEach(event => { event.type == "tag" && !tags.includes(event.tag) && (tags.push(event.tag)) }),
+        console.log("Run Tag Events Untagged: " + runTagEventsUntagged + "\nLeftover Tag(s): " + tags.join(", "));
+}
