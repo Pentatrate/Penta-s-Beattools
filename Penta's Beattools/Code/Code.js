@@ -224,10 +224,122 @@ const toolSelect = document.querySelector("#selectTool"),
                     addEvent(event);
                 }
             } else {
-                resultDiv.innerText = "UNFINISHED", abort = true;
+                const event = JSON.parse(JSON.stringify(getFirstName(openTool.functions, "inputTagEvents")));
+                constants.level.events.forEach(event2 => { event2.type == "tag" && !event.params.filter(param => param.name == event2.tag)[0] && (event.params.push({ name: event2.tag, desc: "", type: "json", required: true, newRow: true, dontBeautifyName: true })) }),
+                    constants.inputTagEvents = event;
+                if (eventsDiv.childElementCount != 1 || eventsDiv.firstElementChild.firstElementChild.innerText != "inputTagEvents") {
+                    while (eventsDiv.firstElementChild) { eventsDiv.firstElementChild.remove(); }
+                    addEvent(event);
+                }
             }
         },
-        after: () => { },
+        after: () => {
+            if (constants.selectTag) {
+                // Do nothing, you're done
+            } else {
+                console.log(constants.inputTagEventParams, constants.chart);
+                console.log("Running untagger.js (modified)"),
+                    console.log('If neither "Done!", "Unfinished." or "Aborted." gets logged for a while, an error has occured');
+                const belongsToChart = ["block", "hold", "inverse", "mine", "mineHold", "side", "extraTap"];
+                let selectedTag, tempTagEvents, needsChartData, status = "untaggingLevel",
+                    runTagEventsUntagged = 0, loop = 0,
+                    untaggedEvents = [], untaggedRunTagEvents = [], untaggingTags = [], untaggedTags = [], playSongEvents = [];
+                untagAll(0);
+
+                function untagAll(recursion) {
+                    if (recursion > 1) {
+                        console.log("The maximum recursion limit (1) has been reached. Something broke."),
+                            status = "unfinished",
+                            endRecursion(recursion);
+                        return;
+                    }
+                    console.log(`Starting recursion ${recursion}.`),
+                        loop = 0;
+                    while ((selectedTag = (recursion == 0 ? constants.level.events : untaggedRunTagEvents).reduce((tag, event) => { return tag ? tag : event.type == "tag" && event.tag != "" && !untaggingTags.includes(event.tag) && event.tag }, false)) !== false && loop <= 100) { // Check for valid Run Tag Event
+                        let selectedTag2 = selectedTag;
+                        // Require Tag Data
+                        console.log(`    (Untagging ${selectedTag}): Start untagging.`),
+                            untaggingTags.push(selectedTag),
+                            !untaggedTags.includes(selectedTag) && (untaggedTags.push(selectedTag));
+                        setTimeout(() => {
+                            let tagEvents = constants.inputTagEventParams[selectedTag2];
+                            // Warnings
+                            if (tagEvents == []) { console.log(`    (Untagging ${selectedTag2}): Nothing in the Tag. Continue deleting Run Tag Events.`); }
+                            // Warnings
+                            tagEvents.some(event => event.type == "play") && (console.log(`    (Untagging ${selectedTag2}): Play Song Events in Tags may lead to duplicates when untagging. This code will automatically delete duplicates after the first event for you.`)),
+                                tagEvents.some(event => event.type == "showResults") && (console.log(`    (Untagging ${selectedTag2}): Show Results Events in Tags may lead to duplicates when untagging.`)),
+                                tagEvents.some(event => event.type == "bookmark") && (console.log(`    (Untagging ${selectedTag2}): Bookmark Events don't belong in Tags.`));
+                            // Require Chart data
+                            needsChartData = tagEvents.some((event => belongsToChart.includes(event.type)));
+                            if (constants.chart === undefined && needsChartData) {
+                                resultDiv.innerText = "In this case the constant Chart is required", abort = true; return;
+                            } else {
+                                continueUntagging(selectedTag2, tagEvents, needsChartData);
+                            }
+                        });
+                        loop++;
+                    }
+                    console.log(`Recursion ${recursion} finished.`);
+                    if (loop > 100) {
+                        console.log(`The maximum loop limit (100) within the recursion (${recursion}) has been reached. Either something broke or you have over 100 different Tags. Code will continue running.`);
+                    } else if (loop == 0) {
+                        status = "finished",
+                            endRecursion(recursion);
+                    }
+                    function continueUntagging(selectedTag2, tagEvents, needsChartData2) {
+                        // Untagging
+                        for (let index = 0; index < constants.level.events.length; index++) {
+                            const event = constants.level.events[index];
+                            runTagEventsUntagged++;
+                            if (event.type != "tag" || event.tag != selectedTag2) { continue; }
+                            tempTagEvents = JSON.parse(JSON.stringify(tagEvents)); // Unpointer Code
+                            for (const i in tempTagEvents) {
+                                tempTagEvents[i].time = tagEvents[i].time + event.time;
+                                event.angleOffset && (tempTagEvents[i].angle = tagEvents[i].angle + event.angle);
+                            }
+                            untaggedEvents.push(...tempTagEvents), constants.level.events.splice(index, 1), index--;
+                        }
+                        // Update with new data
+                        constants.level.events.push(...untaggedEvents.filter((event => !belongsToChart.includes(event.type) && event.type != "tag"))),
+                            recursion == 0 && (untaggedRunTagEvents.push(...untaggedEvents.filter((event => event.type == "tag")))),
+                            needsChartData2 && (constants.chart.push(...untaggedEvents.filter((event => belongsToChart.includes(event.type))))),
+                            untaggingTags.splice(untaggingTags.indexOf(selectedTag2), 1),
+                            console.log(`    (Untagging ${selectedTag2}): Untagging complete.`);
+                        // json.delete(`tags/${tag}.json`);
+                        if (untaggingTags.length == 0) {
+                            if (recursion == 0) {
+                                untagAll(++recursion);
+                            } else if (recursion == 1) {
+                                status = "finished",
+                                    endRecursion(recursion);
+                            }
+                        }
+                    }
+                }
+                function endRecursion(recursion) {
+                    // Removing Play Song Event duplicates
+                    for (let index = 0; index < constants.level.events.length; index++) {
+                        const event = constants.level.events[index];
+                        if (event.type != "play") { continue; }
+                        playSongEvents.push(event), constants.level.events.splice(index, 1), index--;
+                    }
+                    playSongEvents.length > 0 && (constants.level.events.push(playSongEvents.sort((a, b) => a.time - b.time)[0]));
+                    if (playSongEvents.length == 0) {
+                        console.log("No Play Song Event in your level.");
+                    } else if (playSongEvents.length > 1) {
+                        console.log("Multiple Play Song Events in your level. Automatically fixed.");
+                    }
+                    // Overwrite old data
+                    resultDiv.innerText = JSON.stringify(constants.level), needsChartData && (resultDiv2.innerText = JSON.stringify(constants.chart));
+                    switch (status) {
+                        case "finished": console.log("Done!"); break;
+                        case "unfinished": console.log("Unfinished. Something may have broken."); break;
+                    }
+                    // Additional Info
+                    console.log(`Run Tag Events Untagged: ${runTagEventsUntagged}\nTag Events Untagged: ${untaggedTags.join(", ")}\nRecursion depth: ${recursion}`);
+                }
+            }
+        },
         functions: [{
             name: "selectTag",
             desc: "Select the tag to untag",
@@ -277,9 +389,26 @@ const toolSelect = document.querySelector("#selectTool"),
                     resultDiv.innerText = "Something went wrong: This function shouldnt have been called", abort = true;
                 }
             },
+            hidden: true
+        }, {
+            name: "inputTagEvents",
+            desc: "Input the contents of all tag files",
+            params: [
+            ],
+            function: (...params) => {
+                if (constants.selectTag) {
+                    resultDiv.innerText = "Something went wrong: This function shouldnt have been called", abort = true;
+                } else {
+                    constants.inputTagEventParams = {}
+                    constants.inputTagEvents.params.forEach((param, i) => {
+                        constants.inputTagEventParams[param.name] = params[i];
+                    });
+                }
+            },
             hidden: true,
-            dontUseEvents: true
-        }]
+            constOverride: true
+        }],
+        dontUseEvents: true
     }];
 let openTool = tools[0],
     constants = {}, abort;
@@ -413,33 +542,39 @@ function addEvent(func) {
         }
         const inputDiv = addParamInput(param), label = document.createElement("label");
         param.required && (inputDiv.classList.add("animColor")),
-            label.innerText = beautifyText(param.name), label.title = param.desc,
+            label.innerText = param.dontBeautifyName ? param.name : beautifyText(param.name),
+            label.title = param.desc,
             inputDiv.classList.add("subsubfield"),
             eventsDiv.lastElementChild.lastElementChild.append(label, inputDiv);
     });
     const row = document.createElement("div"), removeButton = document.createElement("button"), moveUpButton = document.createElement("button"), moveDownButton = document.createElement("button");
     row.classList.add("row"),
-        eventsDiv.lastElementChild.appendChild(row),
+        eventsDiv.lastElementChild.appendChild(row);
+    if (!func.permanent) {
         removeButton.innerText = "Remove",
-        removeButton.classList.add("subsubfield"),
-        removeButton.onclick = () => {
-            removeButton.parentElement.parentElement.remove(),
-                updatePosition();
-        },
-        moveUpButton.innerText = "Move Up",
-        moveUpButton.classList.add("subsubfield"),
-        moveUpButton.onclick = () => {
-            removeButton.parentElement.parentElement.previousElementSibling.insertAdjacentElement("beforebegin", eventDiv),
-                updatePosition();
-        },
-        moveDownButton.innerText = "Move Down",
-        moveDownButton.classList.add("subsubfield"),
-        moveDownButton.onclick = () => {
-            removeButton.parentElement.parentElement.nextElementSibling.insertAdjacentElement("afterend", eventDiv),
-                updatePosition();
-        },
-        eventsDiv.lastElementChild.lastElementChild.append(removeButton, moveUpButton, moveDownButton),
-        updatePosition();
+            removeButton.classList.add("subsubfield"),
+            removeButton.onclick = () => {
+                removeButton.parentElement.parentElement.remove(),
+                    updatePosition();
+            },
+            moveUpButton.innerText = "Move Up",
+            moveUpButton.classList.add("subsubfield"),
+            moveUpButton.onclick = () => {
+                removeButton.parentElement.parentElement.previousElementSibling.insertAdjacentElement("beforebegin", eventDiv),
+                    updatePosition();
+            },
+            moveDownButton.innerText = "Move Down",
+            moveDownButton.classList.add("subsubfield"),
+            moveDownButton.onclick = () => {
+                removeButton.parentElement.parentElement.nextElementSibling.insertAdjacentElement("afterend", eventDiv),
+                    updatePosition();
+            },
+            eventsDiv.lastElementChild.lastElementChild.append(removeButton, moveUpButton, moveDownButton);
+    } else {
+        eventsDiv.lastElementChild.lastElementChild.style.display = "none";
+        eventsDiv.lastElementChild.lastElementChild.append(document.createElement("div"), document.createElement("div"), document.createElement("div"));
+    }
+    updatePosition();
 }
 function loadTool(toolName) {
     openTool = getFirstName(tools, toolName);
@@ -508,7 +643,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
     },
     runButton.onclick = () => {
         events = [], texts = [], constants = {}, abort = false,
-            resultDiv.innerText = "Running", resultDiv2.innerText = "Empty";
+            resultDiv.innerText = "Empty", resultDiv2.innerText = "Empty";
         let i = 0;
         for (let j = 0; j < constantsDiv.childElementCount; j++) {
             const row = constantsDiv.children[j];
@@ -540,6 +675,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
                 const row = event.children[j];
                 for (let k = 1; k < row.childElementCount; k += 2) {
                     let param = row.children[k].value, paramDefault = func.params[params.length];
+                    func.constOverride && (paramDefault = constants[func.name].params[params.length])
                     row.children[k].style.backgroundColor = "";
                     if (param == "") {
                         param = undefined;
@@ -562,7 +698,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
         if (abort) { return; }
         openTool.after();
         if (abort) { return; }
-        if (openTool.dontUseEvents) {
+        if (!openTool.dontUseEvents) {
             resultDiv.innerText = JSON.stringify(events),
                 console.log("Amount of events:", events.length);
         }
