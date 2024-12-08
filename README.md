@@ -1,8 +1,8 @@
-## Penta-s-Beattools
+# Penta-s-Beattools
 by Pentatrate
 
 for Beatblock
-# How to use (textGenerator.js)
+## How to use (textGenerator.js)
 You should only use this tool if you know what you're doing as step 3 requires you to have minimal knowledge of how to code.
 
 0. Save your level. Beatblock may crash when you make an error here.
