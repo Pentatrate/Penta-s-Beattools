@@ -336,7 +336,7 @@ function runFunction(title, name, ...params) {
 
 
 // Init
-resultDiv.innerText = "Hover over some event name and parameters to get tooltips",
+resultDiv.innerText = "Hover over some event names and parameters to get tooltips",
     code[0].functions.forEach(func => {
         const option = document.createElement("option");
         option.innerText = beautifyText(func.name),
