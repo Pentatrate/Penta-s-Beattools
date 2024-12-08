@@ -3,7 +3,7 @@ by Pentatrate
 
 for Beatblock
 
-## Tools
+## Tools in Penta's Beattools
 1. Beatblock Text Generator using a spritesheet (Use K4kadu's unless you really need to use this one)
 2. Beatblock Untagger (single tag/all tags)
 
@@ -20,6 +20,8 @@ Will get updated to include other tools.
 	You can immediately playtest your changes ingame.
 
 ## How to use (textGenerator.js)
+Included in Penta's Beattools. You shouldn't use the separate version (this).
+
 You should only use this tool if you know what you're doing as step 3 requires you to have minimal knowledge of how to code.
 
 0. Save your level. Beatblock may crash when you make an error here.
@@ -35,6 +37,8 @@ You should only use this tool if you know what you're doing as step 3 requires y
 	You can immediately playtest your changes ingame.
 
 ## How to use (untagger.js)
+Included in Penta's Beattools. You shouldn't use the separate version (this).
+
 You need Node.js for this. The source code that was injected into a Node.js package for the executable.
 
 The code can also be copied and pasted into the console of your browser. You would then need to answer the prompts.
