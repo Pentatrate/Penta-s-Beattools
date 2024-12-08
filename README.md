@@ -3,6 +3,10 @@ by Pentatrate
 
 for Beatblock
 
+## Tools
+1. Beatblock Text Generator using a spritesheet (Use K4kadu's unless you really need to use this one)
+2. Beatblock Untagger (single tag/all tags)
+
 ## How to use (Penta's Beattools)
 Will get updated to include other tools.
 
