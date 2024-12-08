@@ -205,11 +205,12 @@ function beautifyText(text) {
     if (text.length < 3) {
         text = text.toUpperCase();
     } else {
-        text = text.split(""),
-            text.forEach((letter, i) => {
-                letter === letter.toUpperCase() && text.push(" ", ...text.splice(i, text.length - i));
-            }),
-            text[0] = text[0].toUpperCase(),
+        text = text.split("");
+        for (let i = 0; i < text.length && i < 1000; i++) {
+            const letter = text[i];
+            letter === letter.toUpperCase() && (text.push(" ", ...text.splice(i, text.length - i++)));
+        }
+        text[0] = text[0].toUpperCase(),
             text = text.join("");
     }
     return text;
