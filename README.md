@@ -19,7 +19,7 @@ Will get updated to include other tools.
 6. Use the tag in your level.
 	You can immediately playtest your changes ingame.
 
-## How to use (textGenerator.js)
+## How to use (Separate Tools/textGenerator.js)
 Included in Penta's Beattools. You shouldn't use the separate version (this).
 
 You should only use this tool if you know what you're doing as step 3 requires you to have minimal knowledge of how to code.
@@ -36,7 +36,7 @@ You should only use this tool if you know what you're doing as step 3 requires y
 8. Use the tag in your level.
 	You can immediately playtest your changes ingame.
 
-## How to use (untagger.js)
+## How to use (Separate Tools/untagger.js)
 Included in Penta's Beattools. You shouldn't use the separate version (this).
 
 You need Node.js for this. The source code that was injected into a Node.js package for the executable.
