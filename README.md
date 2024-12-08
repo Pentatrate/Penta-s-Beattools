@@ -25,8 +25,7 @@ You should only use this tool if you know what you're doing as step 3 requires y
 	The comments and example code will help you.
 4. Open a new tab in your browser.
 5. Open the console/developer tools there (Ctrl + Shift + I in Google).
-6. Copy and paste everything from the text editor your console and press Enter.
-7. Create a new tag at time 0 in the editor using temporary events.
-8. Open the tag file (tags/*tagName*.json) in a text editor and delete everything in it.
-9. Copy and paste the large text from the console into the tag file and save it.
-10. You can immediately playtest your changes ingame.
+6. Copy and paste everything from the text editor into your console and press Enter.
+7. Copy and paste the text from the console into an empty tag file ("tags/*tagName*.json") and save it.
+8. Use the tag in your level.
+	You can immediately playtest your changes ingame.
