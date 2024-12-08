@@ -29,3 +29,15 @@ You should only use this tool if you know what you're doing as step 3 requires y
 7. Copy and paste the text from the console into an empty tag file ("tags/*tagName*.json") and save it.
 8. Use the tag in your level.
 	You can immediately playtest your changes ingame.
+
+## How to use (untagger.js)
+You need Node.js for this. The source code that was injected into a Node.js package for the executable.
+
+The code can also be copied and pasted into the console of your browser. You would then need to answer the prompts.
+1. Save your level if you are in the editor (Make sure you can play it without errors).
+2. Create a copy of your level for the unlikely event where your level breaks afterwards.
+3. Download and put the untagger.js file into the folder of your specific level (**not** in the "tags" folder).
+4. Open the command prompt and use Node.js to run it. Read the logs to make sure it was successful.
+5. Check the "tags" folder of your level. It should be empty.
+6. Reopen your level in the editor.
+7. Report errors to me.
