@@ -560,6 +560,8 @@ const toolSelect = document.querySelector("#selectTool"),
             { name: "spawnOffset", desc: "Parameter for the fake blocks", type: "number", required: true },
             { name: "speed", desc: "Parameter for the fake blocks", type: "number", required: false },
             { name: "scrollSpeed", desc: "Parameter for the fake blocks", type: "number", required: false },
+            { name: "entryTime", desc: "How long the entry animation of the fake block takes", type: "number", required: false },
+            { name: "entryEase", desc: "Easing for entry animation of the fake block", type: "number", required: false },
             { name: "defaultPaddleSize", desc: "How large the paddle should be under default conditions\nWill change relative to the circle radius", type: "number", required: false, newRow: true },
             { name: "turnSpeed", desc: "How fast you should turn under default conditions\nWill change relative to the circle radius", type: "number", required: true },
             { name: "turnLeeway", desc: "The time inbetween blocks to turn 180° to the next circle\nThe other time will be used to ease p.drawScale\nValues: 0-1", type: "number", required: true },
@@ -670,7 +672,7 @@ const toolSelect = document.querySelector("#selectTool"),
                 events.push({
                     time: circle.start - constants.spawnOffset, angle: 0, type: "deco",
                     id: "amox_" + i, sx: 0, x: 300 + circle.x, y: 180 + circle.y,
-                }), recreateBlocks(events, circle.start, (i == circles.length - 1 ? 800 : circle.end), "amox_" + i, constants.speed, constants.scrollSpeed, constants.spawnOffset, undefined, 0, true, circle.r, "outQuad", 2);
+                }), recreateBlocks(events, circle.start, (i == circles.length - 1 ? 800 : circle.end), "amox_" + i, constants.speed, constants.scrollSpeed, constants.spawnOffset, undefined, 0, true, circle.r, constants.entryEase, constants.entryTime);
             }),
                 resultDiv.innerText = JSON.stringify(constants.startEvents),
                 resultDiv2.innerText = JSON.stringify(events);
