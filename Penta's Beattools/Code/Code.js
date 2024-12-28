@@ -25,8 +25,8 @@ const toolSelect = document.querySelector("#selectTool"),
                 { name: "order", desc: "", type: "number", required: false },
                 { name: "id", desc: "An identifier unique to this text", type: "string", required: true },
                 { name: "text", desc: "Text that you start with", type: "string", required: false },
-                { name: "horizontalAnchor", desc: "values: left, middle, right (default: left)", type: "select", values: ["left", "middle", "right"], required: false, newRow: true },
-                { name: "verticalAnchor", desc: "values: top, middle, bottom (default: top)", type: "select", values: ["top", "middle", "bottom"], required: false },
+                { name: "horizontalAnchor", desc: "Default: Left", type: "select", values: ["left", "middle", "right"], required: false, newRow: true },
+                { name: "verticalAnchor", desc: "Default: Top", type: "select", values: ["top", "middle", "bottom"], required: false },
                 { name: "parentid", desc: "", type: "string", required: false, newRow: true },
                 { name: "rotationInfluence", desc: "", type: "number", required: false },
                 { name: "orbit", desc: "", type: "boolean", required: false },
@@ -92,8 +92,8 @@ const toolSelect = document.querySelector("#selectTool"),
                 { name: "time", desc: "", type: "number", required: true, newRow: true },
                 { name: "order", desc: "", type: "number", required: false },
                 { name: "id", desc: "The identifier unique to this text", type: "string", required: true },
-                { name: "horizontalAnchor", desc: "values: left, middle, right (default: left)", type: "select", values: ["left", "middle", "right"], required: false, newRow: true },
-                { name: "verticalAnchor", desc: "values: top, middle, bottom (default: top)", type: "select", values: ["top", "middle", "bottom"], required: false },
+                { name: "horizontalAnchor", desc: "Default: Left", type: "select", values: ["left", "middle", "right"], required: false, newRow: true },
+                { name: "verticalAnchor", desc: "Default: Top", type: "select", values: ["top", "middle", "bottom"], required: false },
             ],
             function: (time, order, id, horizontalAnchor, verticalAnchor) => {
                 const textObj = texts[getIndexOfText(id)];
@@ -168,8 +168,8 @@ const toolSelect = document.querySelector("#selectTool"),
                 { name: "time", desc: "", type: "number", required: true, newRow: true },
                 { name: "id", desc: "The identifier unique to this text", type: "number", required: true },
                 { name: "text", desc: "The letters to fully replace your previous letters with", type: "number", required: false },
-                { name: "lettersPerBeat", desc: "How many letters start or end getting animated per beat (default: 1)", type: "number", required: false, newRow: true },
-                { name: "letterSubRandomize", desc: "How many randomizations any letter gets before the next letter starts or ends getting randomized (default: 1)", type: "number", required: false }
+                { name: "lettersPerBeat", desc: "How many letters start or end getting animated per beat\nDefault: 1", type: "number", required: false, newRow: true },
+                { name: "letterSubRandomize", desc: "How many randomizations any letter gets before the next letter starts or ends getting randomized\nDefault: 1", type: "number", required: false }
             ],
             function: (time, id, text, lettersPerBeat, letterSubRandomize) => {
                 text === undefined && (text = ""),
@@ -408,6 +408,275 @@ const toolSelect = document.querySelector("#selectTool"),
             hidden: true,
             constOverride: true
         }],
+        dontUseEvents: true
+    }, {
+        name: "randomizer",
+        desc: "Randomizes existing notes in your chart\nDoesn't support multiple blocks/holds at the same time\nDoes support one block/hold and one mine and/or side at the same time",
+        constants: [
+            { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
+            { name: "type", desc: "What type of randomizer to run", type: "select", values: ["blocks", "mines"], required: true, newRow: true },
+            { name: "mineBehavior", desc: "How mines should be moved\nOptional when you don't have any mines or set Type to mine", type: "select", values: ["opposite", "close"], required: false },
+            { name: "minTime", desc: "The time the randomizer starts", type: "number", required: false, newRow: true },
+            { name: "maxTime", desc: "The time the randomizer ends", type: "number", required: false },
+            { name: "startAngle", desc: "The angle the randomizer starts", type: "number", required: false, newRow: true },
+            { name: "snap", desc: "The angle snap", type: "number", required: true },
+            { name: "minDist", desc: "The minimum angle between two notes", type: "number", required: false },
+            { name: "maxDist", desc: "The maximum angle between two notes", type: "number", required: false },
+            { name: "minHoldDir", desc: "The minimum angle the hold travels in one beat\nUsed 180 in Amphisbaena\nDefault: 0", type: "number", required: false, newRow: true },
+            { name: "maxHoldDir", desc: "The maximum angle the hold travels in one beat\nUsed 270 in Amphisbaena\nDefault: 0", type: "number", required: false },
+            { name: "sideDir", desc: "The angle between overlapping notes and sides\nAlso used for close mines... for now\n45 is recommended", type: "number", required: true, newRow: true },
+            { name: "closeTime", desc: "How close notes should be to be considered close\nDefault: 0", type: "number", required: false, newRow: true },
+            { name: "closeDir", desc: "The angle close notes are moved\nDefault: 0", type: "number", required: false },
+            { name: "closeBehavior", desc: "How the angle of close notes should behave to their time difference\nDefault: Relative", type: "select", values: ["absolute", "relative"], required: false }
+        ],
+        before: () => {
+            constants.minHoldDir === undefined && (constants.minHoldDir = 0),
+                constants.maxHoldDir === undefined && (constants.maxHoldDir = 0),
+                constants.closeTime === undefined && (constants.closeTime = 0),
+                constants.closeDir === undefined && (constants.closeDir = 0),
+                constants.closeBehavior === undefined && (constants.closeBehavior = "relative");
+            if (constants.mineBehavior === undefined && constants.type == "blocks" && constants.chart.filter(event => event.time > time && event.time <= constants.maxTime).some(event => event.tpye == "mine")) {
+                resultDiv.innerText = "In this case the constant Mine Behavior is required", abort = true; return;
+            }
+            // Declare Vars and require Chart Data
+            let value = constants.startAngle === undefined ? newAngle(constants.snap) : constants.startAngle,
+                lastEvent, time, ovlpEvent, holdDir;
+            time = constants.minTime !== undefined ? constants.minTime - 0.001 : -(10 ** 10),
+                constants.maxTime === undefined && (constants.maxTime = 10 ** 10),
+                constants.chart.sort((a, b) => a.time - b.time);
+            function mineSideBehavior(event, dir) {
+                switch (constants.mineBehavior) {
+                    case "opposite": return event.type == "side" ? constants.sideDir * dir : 180;
+                    case "close": return constants.sideDir * dir * (event.type == "side" ? 1 : -1);
+                }
+            };
+            while (constants.chart.filter(event => event.time > time && event.time <= constants.maxTime).length > 0) {
+                time = constants.chart.filter(event => event.time > time)[0].time;
+                switch (constants.type) {
+                    case "blocks":
+                        constants.chart.filter(event => event.time == time && ["block", "hold"].includes(event.type)).forEach(event => {
+                            if (lastEvent) {
+                                const prevEvent = constants.chart.filter(event2 => ["block", "hold"].includes(event2.type) && event2.time < event.time && event2.time >= event.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0],
+                                    preverEvent = prevEvent ? constants.chart.filter(event2 => ["block", "hold"].includes(event2.type) && event2.time < prevEvent.time && event2.time >= prevEvent.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0] : undefined;
+                                ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2 != event && event2.time <= event.time && event2.time + event2.duration >= event.time)[0]; // No way I'm accounting for multiple overlapping holds
+                                switch (true) {
+                                    case ovlpEvent && ovlpEvent.time + ovlpEvent.duration == event.time: // Place block on top of hold
+                                        value = ovlpEvent.angle2; break;
+                                    case prevEvent: // Blocks too close
+                                        value = lastAngle + closeDir * (preverEvent ? lastDir : randomValue(-0.5, 2) * 2) * (constants.closeBehavior == "relative" ? (event.time - prevEvent.time) / constants.closeTime : 1); break;
+                                    default:
+                                        value = normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist)); break;
+                                }
+                                lastDir = ((compareAnglesLR(lastAngle, value) == "left") - 0.5) * 2,
+                                    lastAngle = value,
+                                    event.type == "hold" && (
+                                        holdDir = (randomValue(0, 2) - 0.5) * 2,
+                                        event.angle2 = event.angle + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * holdDir,
+                                        lastAngle = event.angle2,
+                                        ovlpEvent && (lastDir = holdDir)
+                                    );
+                            } else {
+                                lastAngle = value;
+                            }
+                            event.angle = value,
+                                lastEvent = event;
+                        }),
+                            constants.chart.filter(event => event.time == time && ["mine", "side"].includes(event.type)).forEach(event => {
+                                ovlpEvent = constants.chart.filter(event => event.time == time && ["block", "hold"].includes(event.type))[0];
+                                if (ovlpEvent) { // Overlapping block or hold start
+                                    event.angle = ovlpEvent.angle + mineSideBehavior(event.type, lastDir);
+                                } else {
+                                    ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2.time + event2.duration == event.time)[0]; // Same here
+                                    if (ovlpEvent) { // Overlapping hold end
+                                        event.angle = ovlpEvent.angle2 + mineSideBehavior(event.type, holdDir);
+                                    } else {
+                                        ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2.time <= event.time && event2.time + event2.duration >= event.time)[0]; // Same here
+                                        if (ovlpEvent) { // Overlapping hold middle - close mines dont make sense here
+                                            event.angle = ovlpEvent.angle + (ovlpEvent.angle2 - ovlpEvent.angle) / ovlpEvent.duration * (event.time - ovlpEvent.time) + (event.type == "side" ? constants.sideDir * holdDir : 180);
+                                        } else { // No block or hold to base placement off of
+                                            console.log("DAMMIT", event.time),
+                                                event.angle = newAngle(constants.snap);
+                                        }
+                                    }
+                                }
+                            }); break;
+                    case "mines":
+                        constants.chart.filter(event => event.time == time && ["mine", "mineHold"].includes(event.type)).forEach(event => {
+                            if (lastEvent) {
+                                ovlpEvent = constants.chart.filter(event2 => event2.type == "mineHold" && event2 != event && event2.time <= event.time && event2.time + event2.duration >= event.time)[0], // No way I'm accounting for multiple overlapping holds
+                                    value = (ovlpEvent && ovlpEvent.time + ovlpEvent.duration == event.time ? (ovlpEvent.angle2) : normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist))),
+                                    lastAngle = value,
+                                    event.type == "mineHold" && (
+                                        holdDir = (randomValue(0, 2) - 0.5) * 2,
+                                        event.angle2 = event.angle + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * holdDir,
+                                        lastAngle = event.angle2
+                                    );
+                            } else {
+                                lastAngle = value;
+                            }
+                            event.angle = value,
+                                lastEvent = event;
+                        }); break;
+                }
+            }
+        },
+        after: () => { },
+        functions: [],
+        dontUseEvents: true
+    }, {
+        name: "decoChecker",
+        desc: "Returns the amount of unhidden decos in your level",
+        constants: [
+            { name: "level", desc: "The level file that your variant uses", type: "json", required: true, newRow: true }
+        ],
+        before: () => {
+            const decos = [], decoEvents = (constants.level.events !== undefined ? constants.level.events : constants.level).sort((a, b) => a.time - b.time).filter(event => event.type == "deco");
+            let time = -(10 ** 10);
+            function getDecoIndex(id) { return decos.indexOf(decos.filter(event => event.id == id)[0]); }
+            while (decoEvents.filter(event => event.time > time).length > 0) {
+                time = decoEvents.filter(event => event.time > time)[0].time,
+                    decoEvents.filter(event => event.time == time).sort((a, b) => a.order - b.order).forEach(event => {
+                        getDecoIndex(event.id) == -1 && (decos.push({ id: event.id, hide: false, sx: 1, sy: 1 })),
+                            decos[getDecoIndex(event.id)].lastUpdate = event.time,
+                            event.hide !== undefined && (decos[getDecoIndex(event.id)].hide = event.hide),
+                            event.sx !== undefined && (decos[getDecoIndex(event.id)].sx = event.sx),
+                            event.sy !== undefined && (decos[getDecoIndex(event.id)].sy = event.sy);
+                    });
+            }
+            resultDiv.innerText = "Visible decos:\n" + decos.filter(deco => !deco.hide && deco.sx != 0 && deco.sy != 0).map(deco => ["id:", deco.id, "sx:", deco.sx, "sy:", deco.sy, "lastUpdate:", deco.lastUpdate].join(" ")).join("\n"),
+                resultDiv2.innerText = "Unhidden scale 0 decos:\n" + decos.filter(deco => !deco.hide && !(deco.sx != 0 && deco.sy != 0)).map(deco => ["id:", deco.id, "sx:", deco.sx, "sy:", deco.sy, "lastUpdate:", deco.lastUpdate].join(" ")).join("\n"),
+                console.log("Amount of unhidden decos:", decos.filter(deco => !deco.hide).length);
+        },
+        after: () => { },
+        functions: [],
+        dontUseEvents: true
+    }, {
+        name: "circleStreamGenerator",
+        desc: "Generates a path using circles to follow with your mouse\nFirst output will be the eases at the start of the part. You should smoothly transition into them. Untag the first output to be able to edit it the the editor\nSecond output is the tag data for the part",
+        constants: [
+            { name: "bpm", desc: "", type: "number", required: true, newRow: true, dontBeautifyName: true },
+            { name: "length", desc: "How many beats the part should last", type: "number", required: true },
+            { name: "lineLength", desc: "How many beats a line segment stays for", type: "number", required: true, newRow: true },
+            { name: "spawnOffset", desc: "Parameter for the fake blocks", type: "number", required: true },
+            { name: "speed", desc: "Parameter for the fake blocks", type: "number", required: false },
+            { name: "scrollSpeed", desc: "Parameter for the fake blocks", type: "number", required: false },
+            { name: "defaultPaddleSize", desc: "How large the paddle should be under default conditions\nWill change relative to the circle radius", type: "number", required: false, newRow: true },
+            { name: "turnSpeed", desc: "How fast you should turn under default conditions\nWill change relative to the circle radius", type: "number", required: true },
+            { name: "turnLeeway", desc: "The time inbetween blocks to turn 180° to the next circle\nThe other time will be used to ease p.drawScale\nValues: 0-1", type: "number", required: true },
+            { name: "startRadius", desc: "Default: 51", type: "number", required: false, newRow: true },
+            { name: "minRadius", desc: "Smallest random radius", type: "number", required: true },
+            { name: "maxRadius", desc: "Largest random radius", type: "number", required: true },
+            { name: "startX", desc: "Default: 300", type: "number", required: false, newRow: true },
+            { name: "startY", desc: "Default: 180", type: "number", required: false },
+            { name: "forceDist", desc: "The distance from the center of the screen when the script forces generation toward the center", type: "number", required: true },
+            { name: "blocksPerBeat", desc: "", type: "number", required: true, newRow: true },
+            { name: "lineSegmentsPerBlock", desc: "Will affect the quality of your circle at the cost of more events\nKeep as low while maintaining smooth circles\nWorks best without decimals", type: "number", required: false },
+        ],
+        before: () => {
+            constants.startEvents = [], lastDir = randomValue(-0.5, 2) * 2, lastAngle = 0;
+            let angleDiffDefault = (42 + 9) * constants.turnSpeed, paddleSizeDefault = (42 + 9) * (constants.defaultPaddleSize || 70),
+                radius = constants.startRadius || 51,
+                blockTimeDiff = 1 / constants.blocksPerBeat, calculationSegments = (constants.lineSegmentsPerBlock || 1), lineSegmentTimeDiff = blockTimeDiff / (constants.lineSegmentsPerBlock || 1),
+                x = 0, y = 0, angleDiff = angleDiffDefault / radius, lastX = -angleDiffDefault / radius * blockTimeDiff * lastDir, lastY = -radius, circles = [], lines = [];
+            constants.startEvents.push(
+                { time: 0, angle: 0, type: "deco", id: "amogs", sprite: "pixel.png", ox: 0.5, oy: 0.5, sx: 4, sy: 4, x: 300 + x, y: 180 + y, drawOrder: -999 },
+                { time: 0, angle: 0, type: "ease", var: "p.x", value: constants.startX },
+                { time: 0, angle: 0, type: "ease", var: "p.y", value: constants.startY },
+                { time: 0, angle: 0, type: "ease", var: "p.paddleDistance", value: radius - 10 - 9 },
+                { time: 0, angle: 0, type: "paddles", paddle: 2, newWidth: paddleSizeDefault / radius },
+                { time: 0, angle: 0, type: "ease", var: "p.bodyRadius", value: 0 },
+                { time: 0, angle: 0, type: "paddles", paddle: 1, enabled: false },
+                { time: 0, angle: 0, type: "paddles", paddle: 2, enabled: true },
+                { time: 0, angle: 0, type: "ease", var: "scrollSpeed", value: 1000000 },
+                { time: 0, angle: 0, type: "ease", var: "p.lookYOffset", value: 1000000 },
+                { time: 0, angle: 0, type: "ease", var: "p.bobI", value: 0, "duration": length }
+            ),
+                circles.push({ x: x, y: y, r: radius, start: 0, startAngle: lastAngle, dir: lastDir });
+            let goal = lastAngle + randomValue(0, 360) * lastDir;
+            for (let i = 0, j = 0, lastBlock = 0, prevBlock = 0; i < constants.length; i += blockTimeDiff / calculationSegments, j = (j + 1) % calculationSegments) {
+                j == 0 && (events.push({
+                    time: i, angle: lastAngle, type: "block"
+                }), lastBlock = i),
+                    lastAngle += angleDiff * lastDir * blockTimeDiff / calculationSegments,
+                    lastBlock != prevBlock && (normalizeAngle(lastAngle - goal) < angleDiff * blockTimeDiff / calculationSegments || normalizeAngle(lastAngle - goal) > 360 - angleDiff * blockTimeDiff / calculationSegments) && (
+                        prevBlock = lastBlock,
+                        circles[circles.length - 1].end = i, circles[circles.length - 1].endAngle = lastAngle,
+                        x += sin(180 - lastAngle) * radius, y += cos(180 - lastAngle) * radius,
+                        radius = randomValue(constants.minRadius, constants.maxRadius - constants.minRadius + 1),
+                        x += sin(180 - lastAngle) * radius, y += cos(180 - lastAngle) * radius,
+                        lastAngle += 180, lastDir *= -1,
+                        goal = getDist(x, y) > constants.forceDist ? -90 + getAngle(x, y) : lastAngle + randomValue(angleDiffDefault / radius * blockTimeDiff * 2, 360 - angleDiffDefault / radius * blockTimeDiff * 4) * lastDir,
+                        events.push(
+                            { time: lastBlock + (0.5 - constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "ease", var: "p.x", value: 300 + x },
+                            { time: lastBlock + (0.5 - constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "ease", var: "p.y", value: 180 + y },
+                            { time: lastBlock + (0.5 - constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "ease", var: "p.paddleDistance", value: radius - 10.5 - 9 },
+                            { time: lastBlock + (0.5 - constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "paddles", paddle: 2, newWidth: 720 },
+                            { time: lastBlock + (0.5 + constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "paddles", paddle: 2, newWidth: paddleSizeDefault / radius },
+                            { time: lastBlock, angle: 0, type: "ease", var: "p.drawScale", value: 0, duration: (0.5 - constants.turnLeeway / 2) * blockTimeDiff, ease: "inQuad" },
+                            { time: lastBlock + (0.5 + constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "ease", var: "p.drawScale", value: 1, duration: (0.5 - constants.turnLeeway / 2) * blockTimeDiff, ease: "outQuad" },
+                            { time: lastBlock + (0.5 + constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "deco", id: "amogs", x: 300 + x, y: 180 + y }
+                        ),
+                        angleDiff = angleDiffDefault / radius, circles.push({ x: x, y: y, r: radius, start: i + blockTimeDiff / calculationSegments, startAngle: lastAngle, dir: lastDir })
+                    ),
+                    i + blockTimeDiff / calculationSegments >= constants.length && (circles[circles.length - 1].end = i, circles[circles.length - 1].endAngle = lastAngle)
+            }
+            circles.forEach((circle, i) => {
+                lastAngle = circle.startAngle;
+                for (let i = circle.start; i <= circle.end;) {
+                    const dist = getDist(lastX - (circle.x + cos(-90 + lastAngle) * circle.r), lastY - (circle.y + sin(-90 + lastAngle) * circle.r)),
+                        x2 = 300 + circle.x + cos(-90 + lastAngle) * circle.r, y2 = 180 + circle.y + sin(-90 + lastAngle) * circle.r,
+                        r2 = -90 + getAngle(lastX - (circle.x + cos(-90 + lastAngle) * circle.r), lastY - (circle.y + sin(-90 + lastAngle) * circle.r));
+                    let index = lines.indexOf(lines.filter(time => time < i - constants.lineLength)[0]);
+                    (index === -1 ? (index = lines.length, lines.push(i)) : lines[index] = i),
+                        events.push({
+                            time: i - constants.lineLength + (i == circle.start && blockTimeDiff / calculationSegments < lineSegmentTimeDiff ? lineSegmentTimeDiff - blockTimeDiff : 0), angle: 0, type: "deco", order: 0, id: "amogus_" + index, sprite: "pixel.png", recolor: 1, drawOrder: 1,
+                            x: x2 + cos(90 + r2) * dist, y: y2 + sin(90 + r2) * dist,
+                            ox: 0.5, sy: 0, r: r2
+                        }, {
+                            time: i - constants.lineLength + (i == circle.start && blockTimeDiff / calculationSegments < lineSegmentTimeDiff ? lineSegmentTimeDiff - blockTimeDiff : 0), angle: 0, type: "deco", order: 1, id: "amogus_" + index,
+                            x: x2, y: y2,
+                            sy: dist, duration: i == circle.start && blockTimeDiff / calculationSegments < lineSegmentTimeDiff ? blockTimeDiff : lineSegmentTimeDiff
+                        }, {
+                            time: i - (i == circle.start && blockTimeDiff / calculationSegments < lineSegmentTimeDiff ? blockTimeDiff : lineSegmentTimeDiff), angle: 0, type: "deco", id: "amogus_" + index,
+                            sy: 0, duration: i == circle.start && blockTimeDiff / calculationSegments < lineSegmentTimeDiff ? blockTimeDiff : lineSegmentTimeDiff
+                        }),
+                        lastX = circle.x + cos(-90 + lastAngle) * circle.r, lastY = circle.y + sin(-90 + lastAngle) * circle.r,
+                        i += lineSegmentTimeDiff;
+                    if (i > circle.end && i - lineSegmentTimeDiff != circle.end) {
+                        console.log(i)
+                        const dist = getDist(lastX - (circle.x + cos(-90 + circle.endAngle) * circle.r), lastY - (circle.y + sin(-90 + circle.endAngle) * circle.r)),
+                            x2 = 300 + circle.x + cos(-90 + circle.endAngle) * circle.r, y2 = 180 + circle.y + sin(-90 + circle.endAngle) * circle.r,
+                            r2 = -90 + getAngle(lastX - (circle.x + cos(-90 + circle.endAngle) * circle.r), lastY - (circle.y + sin(-90 + circle.endAngle) * circle.r));
+                        index = lines.indexOf(lines.filter(time => time < i - constants.lineLength)[0]);
+                        (index === -1 ? (index = lines.length, lines.push(i)) : lines[index] = i),
+                            events.push({
+                                time: i - constants.lineLength, angle: 0, type: "deco", order: 0, id: "amogus_" + index, sprite: "pixel.png", recolor: 1, drawOrder: 1,
+                                x: x2 + cos(90 + r2) * dist, y: y2 + sin(90 + r2) * dist,
+                                ox: 0.5, sy: 0, r: r2
+                            }, {
+                                time: i - constants.lineLength, angle: 0, type: "deco", order: 1, id: "amogus_" + index,
+                                x: x2, y: y2,
+                                sy: dist, duration: Math.abs(circle.endAngle - lastAngle) / (angleDiffDefault / circle.r)
+                            }, {
+                                time: circle.end - (circle.end - i + lineSegmentTimeDiff), angle: 0, type: "deco", id: "amogus_" + index,
+                                sy: 0, duration: circle.end - i + lineSegmentTimeDiff
+                            }),
+                            lastX = circle.x + cos(-90 + circle.endAngle) * circle.r, lastY = circle.y + sin(-90 + circle.endAngle) * circle.r,
+                            i += lineSegmentTimeDiff;
+                    } else {
+                        lastAngle += angleDiffDefault / circle.r * circle.dir * lineSegmentTimeDiff;
+                    }
+                }
+                events.push({
+                    time: circle.start - constants.spawnOffset, angle: 0, type: "deco",
+                    id: "amox_" + i, sx: 0, x: 300 + circle.x, y: 180 + circle.y,
+                }), recreateBlocks(events, circle.start, (i == circles.length - 1 ? 800 : circle.end), "amox_" + i, constants.speed, constants.scrollSpeed, constants.spawnOffset, undefined, 0, true, circle.r, "outQuad", 2);
+            }),
+                resultDiv.innerText = JSON.stringify(constants.startEvents),
+                resultDiv2.innerText = JSON.stringify(events);
+        },
+        after: () => { },
+        functions: [],
         dontUseEvents: true
     }];
 let openTool = tools[0],
@@ -727,8 +996,18 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
 
 
 // General utility
-let events = [];
+let events = [], lastAngle = 0, lastDir = 1;
+function normalizeAngle(d) { return ((d % 360) + 360) % 360; }
+function compareAnglesLR(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (180 > tempDiff && tempDiff >= 0 ? "left" : "right"); }
+function compareAnglesFB(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (90 > tempDiff || tempDiff >= 270 ? "front" : "back"); }
+function getAngle(x, y) { return Math.atan2(y, x) / Math.PI * 180; }
+function getDist(x, y) { return Math.hypot(x, y); }
+function cos(d) { return Math.cos(d / 180 * Math.PI); }
+function sin(d) { return Math.sin(d / 180 * Math.PI); }
+
 function randomValue(min, range) { return Math.floor(Math.random() * (range)) + min; }
+function newAngle(snap, minDist, maxDist) { let angle; do { angle = randomValue(0, snap) * 360 / snap; } while ((minDist !== undefined && (normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist))); return angle; }
+function randomAngle(snap, minAngle, maxAngle) { return randomValue(minAngle / 360 * snap, (maxAngle - minAngle) / 360 * snap) * 360 / snap; }
 
 // Text Generator utility
 const availiableLetters = [{ letter: " ", length: 4 }, { letter: "a", length: 8 }, { letter: "b", length: 8 }, { letter: "c", length: 7 }, { letter: "d", length: 8 }, { letter: "e", length: 8 }, { letter: "f", length: 3 }, { letter: "g", length: 8 }, { letter: "h", length: 8 }, { letter: "i", length: 2 }, { letter: "j", length: 2 }, { letter: "k", length: 8 }, { letter: "l", length: 2 }, { letter: "m", length: 11 }, { letter: "n", length: 8 }, { letter: "o", length: 8 }, { letter: "p", length: 8 }, { letter: "q", length: 8 }, { letter: "r", length: 5 }, { letter: "s", length: 7 }, { letter: "t", length: 3 }, { letter: "u", length: 8 }, { letter: "v", length: 8 }, { letter: "w", length: 11 }, { letter: "x", length: 7 }, { letter: "y", length: 8 }, { letter: "z", length: 8 }, { letter: "#", length: 9 }, { letter: "A", length: 8 }, { letter: "B", length: 8 }, { letter: "C", length: 8 }, { letter: "D", length: 8 }, { letter: "E", length: 7 }, { letter: "F", length: 7 }, { letter: "G", length: 9 }, { letter: "H", length: 8 }, { letter: "I", length: 1 }, { letter: "J", length: 3 }, { letter: "K", length: 8 }, { letter: "L", length: 4 }, { letter: "M", length: 11 }, { letter: "N", length: 8 }, { letter: "O", length: 9 }, { letter: "P", length: 8 }, { letter: "Q", length: 9 }, { letter: "R", length: 8 }, { letter: "S", length: 8 }, { letter: "T", length: 7 }, { letter: "U", length: 8 }, { letter: "V", length: 8 }, { letter: "W", length: 11 }, { letter: "X", length: 7 }, { letter: "Y", length: 8 }, { letter: "Z", length: 7 }, { letter: "0", length: 8 }, { letter: "1", length: 1 }, { letter: "2", length: 7 }, { letter: "3", length: 8 }, { letter: "4", length: 8 }, { letter: "5", length: 7 }, { letter: "6", length: 8 }, { letter: "7", length: 6 }, { letter: "8", length: 8 }, { letter: "9", length: 8 }, { letter: "+", length: 5 }, { letter: "-", length: 4 }, { letter: "*", length: 4 }, { letter: "/", length: 3 }, { letter: "\\", length: 3 }, { letter: "%", length: 9 }, { letter: '"', length: 3 }, { letter: "'", length: 1 }, { letter: "&", length: 9 }, { letter: "~", length: 6 }, { letter: ".", length: 1 }, { letter: ",", length: 2 }, { letter: ":", length: 1 }, { letter: ";", length: 2 }, { letter: "_", length: 8 }, { letter: "<", length: 6 }, { letter: ">", length: 6 }, { letter: "|", length: 1 }, { letter: "´", length: 2 }, { letter: "`", length: 2 }, { letter: "^", length: 5 }, { letter: "°", length: 4 }, { letter: "[", length: 2 }, { letter: "]", length: 2 }, { letter: "{", length: 4 }, { letter: "}", length: 4 }, { letter: "=", length: 6 }], prefix = "digitalDiscoFontIncomplete";
@@ -737,3 +1016,82 @@ function getIndexOfText(id) { for (let i = 0; i < texts.length; i++) { if (texts
 function getIndexOfLetter(letter) { for (let i = 0; i < availiableLetters.length; i++) { if (availiableLetters[i].letter == letter) { return i; } } return -1; }
 function getLetterOffset(letter) { if (letter === undefined) { return 0; } return availiableLetters[getIndexOfLetter(letter)].length + (letter == "{" ? 0 : 1); }
 function getTextLength(text) { return text.split("").reduce((length, letter) => length + getLetterOffset(letter), 0) }
+
+// Fake Block Utility
+const fakeBlockPrefix = "fakeBlock";
+let fakeBlocks = [];
+function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearEase, appearLength) {
+    radius === undefined && (radius = 51)
+    const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
+    bonusX === undefined && (bonusX = 0);
+    events.push({
+        time: time, angle: 0, type: "deco", order: 0, hide: false,
+        id: fakeBlockPrefix + "_" + fakeBlocks.length, parentid: parent,
+        sprite: "block.png",
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
+        ox: 9, oy: 9, sx: appearLength ? 0 : undefined, sy: appearLength ? 0 : undefined
+    }, {
+        time: time, angle: 0, type: "deco", order: 1,
+        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
+        duration: duration
+    }, {
+        time: time + duration, angle: 0, type: "deco",
+        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        hide: true
+    }),
+        appearLength && (events.push({
+            time: time, angle: 0, type: "deco", order: 1,
+            id: fakeBlockPrefix + "_" + fakeBlocks.length,
+            sx: 1, sy: 1,
+            duration: appearLength, ease: appearEase
+        })), fakeBlocks.push({ time: time, r: r, xStart: xStart, x: x, duration: duration, parent: parent });
+}
+function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearEase, appearLength) {
+    radius === undefined && (radius = 36.5)
+    const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
+    bonusX === undefined && (bonusX = 0);
+    events.push({
+        time: time, angle: 0, type: "deco", order: 0, hide: false,
+        id: fakeBlockPrefix + "_" + fakeBlocks.length, parentid: parent,
+        sprite: "side.png",
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
+        ox: 7, oy: 10, sx: appearLength ? 0 : undefined, sy: appearLength ? 0 : undefined,
+        r: r
+    }, {
+        time: time, angle: 0, type: "deco", order: 1,
+        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
+        duration: duration
+    }, {
+        time: time + duration, angle: 0, type: "deco",
+        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        hide: true
+    }),
+        appearLength && (events.push({
+            time: time, angle: 0, type: "deco", order: 1,
+            id: fakeBlockPrefix + "_" + fakeBlocks.length,
+            sx: 1, sy: 1,
+            duration: appearLength, ease: appearEase
+        })), fakeBlocks.push({ time: time, r: r, xStart: xStart, x: x, duration: duration, parent: parent });
+}
+
+function recreateBlocks(chart, startTime, endTime, parent, speed, scrollSpeed, spawnOffset, randomR, fakes, onlyInPart, radius, appearEase, appearLength) {
+    chart.forEach(event => {
+        if (onlyInPart ? event.time <= endTime && event.time >= startTime : event.time - spawnOffset < endTime && event.time > startTime) {
+            const fakeStart = onlyInPart ? event.time - spawnOffset : Math.max(event.time - spawnOffset, startTime), fakeEnd = Math.min(event.time, endTime);
+            switch (event.type) {
+                case "block":
+                    newFakeBlock(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - startTime)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomR ? randomValue(-75, 151) : 0, 0, radius, appearEase, appearLength);
+                    for (let i = 0; i < fakes; i++) {
+                        newFakeBlock(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
+                    } break;
+                case "side":
+                    newFakeSide(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - startTime)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomR ? randomValue(-75, 151) : 0, 0, radius, appearEase, appearLength);
+                    for (let i = 0; i < fakes; i++) {
+                        newFakeSide(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
+                    } break;
+            }
+        }
+    });
+}
