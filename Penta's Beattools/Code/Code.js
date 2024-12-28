@@ -579,7 +579,7 @@ const toolSelect = document.querySelector("#selectTool"),
             let angleDiffDefault = (42 + 9) * constants.turnSpeed, paddleSizeDefault = (42 + 9) * (constants.defaultPaddleSize || 70),
                 radius = constants.startRadius || 51,
                 blockTimeDiff = 1 / constants.blocksPerBeat, calculationSegments = (constants.lineSegmentsPerBlock || 1), lineSegmentTimeDiff = blockTimeDiff / (constants.lineSegmentsPerBlock || 1),
-                x = 0, y = 0, angleDiff = angleDiffDefault / radius, lastX = -angleDiffDefault / radius * blockTimeDiff * lastDir, lastY = -radius, circles = [], lines = [];
+                x = constants.startX - 300, y = constants.startY - 180, angleDiff = angleDiffDefault / radius, lastX = -angleDiffDefault / radius * blockTimeDiff * lastDir + x, lastY = -radius + y, circles = [], lines = [];
             constants.startEvents.push(
                 { time: 0, angle: 0, type: "deco", id: "amogs", sprite: "pixel.png", ox: 0.5, oy: 0.5, sx: 4, sy: 4, x: 300 + x, y: 180 + y, drawOrder: -999 },
                 { time: 0, angle: 0, type: "ease", var: "p.x", value: constants.startX },
