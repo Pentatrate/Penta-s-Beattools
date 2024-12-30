@@ -54,7 +54,7 @@ const toolSelect = document.querySelector("#selectTool"),
                     texts.push({ id: id, text: "", horizontalAnchor: horizontalAnchor, verticalAnchor: verticalAnchor, parentid: parentid, rotationInfluence: rotationInfluence, orbit: orbit, x: x, y: y, r: r, sx: sx, sy: sy, kx: kx, ky: ky, drawLayer: drawLayer, drawOrder: drawOrder, recolor: recolor, outline: outline, effectCanvas: effectCanvas, effectCanvasRaw: effectCanvasRaw, ox: 0, oy: 0 }),
                     events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id, parentid: parentid, rotationInfluence: rotationInfluence, orbit: orbit, x: x, y: y, sx: 0 }),
                     events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_-2", parentid: prefix + "_" + id, x: 0, y: 0, r: r, sx: 0 }),
-                    events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_-1", parentid: prefix + "_" + id + "_-2", x: 0, y: (verticalAnchor == "top" ? 0 : (verticalAnchor == "middle" ? -12 / 2 : -12)) * sy, sx: 0 }),
+                    events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_-1", parentid: prefix + "_" + id + "_-2", x: (horizontalAnchor == "left" ? 0 : -getTextLength(text) * sx * (horizontalAnchor == "middle" ? 0.5 : 1)), y: (verticalAnchor == "top" ? 0 : (verticalAnchor == "middle" ? -12 / 2 : -12)) * sy, sx: 0 }),
                     runFunction("textGenerator", "changeText", time, order + 1, id, text);
             }
         }, {
@@ -138,7 +138,9 @@ const toolSelect = document.querySelector("#selectTool"),
                     sy === undefined && (sy = textObj.sy),
                     ky === undefined && (ky = textObj.ky),
                     [parentid, rotationInfluence, orbit, x, y].some(value => value !== undefined) && (events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id, parentid: parentid, rotationInfluence: rotationInfluence, orbit: orbit, x: x, y: y, duration: duration, ease: ease })),
-                    r !== undefined && (events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_-2", r: r, duration: duration, ease: ease }));
+                    r !== undefined && (events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_-2", r: r, duration: duration, ease: ease })),
+                    sx !== undefined && textObj.horizontalAnchor != "left" && (events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_-1", x: -getTextLength(textObj.text) * textObj.sx * (horizontalAnchor == "middle" ? 0.5 : 1), duration: duration, ease: ease })),
+                    sy !== undefined && textObj.verticalAnchor != "top" && (events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_-1", y: (verticalAnchor == "middle" ? -12 / 2 : -12) * textObj.sy, duration: duration, ease: ease }));
                 if ([sx, sy, kx, ky, drawLayer, drawOrder, recolor, outline, effectCanvas, effectCanvasRaw].some(value => value !== undefined)) {
                     for (let i = 0; i < textObj.text.length; i++) {
                         events.push({ time: time, order: order, angle: 0, type: "deco", id: prefix + "_" + id + "_" + i, x: getLetterOffset(textObj.text[i - 1]) * sx, y: getLetterOffset(textObj.text[i - 1]) * sy * ky, sx: textObj.text[i] == " " ? 0 : sx, sy: sy, kx: kx, ky: ky, drawLayer: drawLayer, drawOrder: drawOrder, recolor: recolor, outline: outline, effectCanvas: effectCanvas, effectCanvasRaw: effectCanvasRaw, duration: duration, ease: ease });
@@ -197,16 +199,7 @@ const toolSelect = document.querySelector("#selectTool"),
                 }
                 runFunction("textGenerator", "changeText", time + (texts[getIndexOfText(id)].text.length + 5) / lettersPerBeat, undefined, id, texts[getIndexOfText(id)].text.trimEnd());
             }
-        }/*, {
-            name: "",
-            desc: "",
-            params: [
-                { name: "", desc: "", type: "number", required: true, newRow: true },
-                { name: "", desc: "", type: "number", required: false }
-            ],
-            function: () => {
-            }
-        }*/]
+        }]
     }, {
         name: "untagger",
         desc: "Untags tags in your level\nRequires multiple runs to update input options",
@@ -533,19 +526,22 @@ const toolSelect = document.querySelector("#selectTool"),
             const decos = [], decoEvents = (constants.level.events !== undefined ? constants.level.events : constants.level).sort((a, b) => a.time - b.time).filter(event => event.type == "deco");
             let time = -(10 ** 10);
             function getDecoIndex(id) { return decos.indexOf(decos.filter(event => event.id == id)[0]); }
-            while (decoEvents.filter(event => event.time > time).length > 0) {
-                time = decoEvents.filter(event => event.time > time)[0].time,
-                    decoEvents.filter(event => event.time == time).sort((a, b) => a.order - b.order).forEach(event => {
-                        getDecoIndex(event.id) == -1 && (decos.push({ id: event.id, hide: false, sx: 1, sy: 1 })),
-                            decos[getDecoIndex(event.id)].lastUpdate = event.time,
-                            event.hide !== undefined && (decos[getDecoIndex(event.id)].hide = event.hide),
-                            event.sx !== undefined && (decos[getDecoIndex(event.id)].sx = event.sx),
-                            event.sy !== undefined && (decos[getDecoIndex(event.id)].sy = event.sy);
-                    });
+            while (decoEvents.some(event => event.time > time)) {
+                time = decoEvents.filter(event => event.time > time)[0].time;
+                const decoNow = decoEvents.filter(event => event.time == time).sort((a, b) => a.order - b.order);
+                decoNow.forEach(event => {
+                    getDecoIndex(event.id) == -1 && (decos.push({ id: event.id, hide: false, sx: 1, sy: 1 }));
+                    const deco = decos[getDecoIndex(event.id)];
+                    deco.lastUpdate = event.time,
+                        event.hide !== undefined && (deco.hide = event.hide),
+                        event.sx !== undefined && (deco.sx = event.sx),
+                        event.sy !== undefined && (deco.sy = event.sy),
+                        decoNow.filter(deco2 => event !== deco2 && event.id == deco2.id && event.hide === true && deco2.hide === false && !(event.order < deco2.order)).forEach(deco2 => { console.log(event.time, event.order, deco2.order) });
+                });
             }
             resultDiv.innerText = "Visible decos:\n" + decos.filter(deco => !deco.hide && deco.sx != 0 && deco.sy != 0).map(deco => ["id:", deco.id, "sx:", deco.sx, "sy:", deco.sy, "lastUpdate:", deco.lastUpdate].join(" ")).join("\n"),
                 resultDiv2.innerText = "Unhidden scale 0 decos:\n" + decos.filter(deco => !deco.hide && !(deco.sx != 0 && deco.sy != 0)).map(deco => ["id:", deco.id, "sx:", deco.sx, "sy:", deco.sy, "lastUpdate:", deco.lastUpdate].join(" ")).join("\n"),
-                console.log("Amount of unhidden decos:", decos.filter(deco => !deco.hide).length);
+                console.log("Amount of unhidden decos:", decos.filter(deco => !deco.hide).length, "/", decos.length);
         },
         after: () => { },
         functions: [],
@@ -680,11 +676,192 @@ const toolSelect = document.querySelector("#selectTool"),
         after: () => { },
         functions: [],
         dontUseEvents: true
+    }, {
+        name: "particleGenerator",
+        desc: "",
+        constants: [],
+        before: () => { },
+        after: () => { },
+        functions: [{
+            name: "particleEmitter",
+            desc: "Emits particles\nOutputs tag data",
+            params: [
+                { name: "start", desc: "", type: "number", required: false, newRow: true },
+                { name: "end", desc: "", type: "number", required: true },
+                { name: "particlesPerBeat", desc: "", type: "number", required: true },
+                { name: "duration1", desc: "The range of how long particles stay", type: "number", required: true, newRow: true },
+                { name: "duration2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "shape", desc: "What shape the particles will generate in\nAll options other than Point will require four parameters\nPoint: Requires X1 and X2\n-Points: Creates a shape between (X1 | Y1) and (X2 | Y2)\n-Size: Creates a shape with middle (X1 | Y1) and width X2 / height Y2\nLine Dir: Creates a line from (X1 | Y1) in the direction X2 with length Y2", type: "select", values: ["point", "linePoints", "lineDir", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"], required: true, newRow: true },
+                { name: "x1", desc: "", type: "number", required: true },
+                { name: "y1", desc: "", type: "number", required: true },
+                { name: "x2", desc: "", type: "number", required: false },
+                { name: "y2", desc: "", type: "number", required: false },
+                { name: "rotateBehavior", desc: "Static: All particles use Rotation1\nRandom: Particles are between Rotation1 and 2\nFollow: DOESNT WORK WITH GRAVITY! Particles rotate in the direction they're moving. Doesnt require parameters", type: "select", values: ["static", "random", "follow"], required: false, newRow: true },
+                { name: "rotation1", desc: "", type: "number", required: false },
+                { name: "rotation2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "spin1", desc: "Particle rotation per beat", type: "number", required: false },
+                { name: "spin2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "dir1", desc: "Direction of particle movement", type: "number", required: false, newRow: true },
+                { name: "dir2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "velocity1", desc: "Particle speed", type: "number", required: false },
+                { name: "velocity2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "gravityDir", desc: "Direction of gravity", type: "number", required: false, newRow: true },
+                { name: "gravity", desc: "Strength of gravity", type: "number", required: false },
+                { name: "scaleBehavior", desc: "Whether smaller particles will stay smaller (Relative) or can grow to be bigger (Random)\nNoticable with different start- and endscale ranges", type: "select", values: ["random", "relative"], required: true, newRow: true },
+                { name: "scaleStart1", desc: "", type: "number", required: true },
+                { name: "scaleStart2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "scaleEnd1", desc: "", type: "number", required: false },
+                { name: "scaleEnd2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "scaleInType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
+                { name: "scaleIn", desc: "Duration of the entry animation", type: "number", required: false },
+                { name: "scaleOutType", desc: "Determines the axis for the exit animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false },
+                { name: "scaleOut", desc: "Duration of the exit animation", type: "number", required: false },
+                { name: "sprite", desc: "", type: "string", required: false, newRow: true },
+                { name: "ox", desc: "", type: "number", required: false },
+                { name: "oy", desc: "", type: "number", required: false },
+                { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ', '\nExamples: '0, 1, 2, 3', '-1', '0, 0, 0, 1'", type: "string", required: false }
+            ],
+            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleIn, scaleOutType, scaleOut, sprite, ox, oy, colors) => {
+                start === undefined && (start = 0),
+                    duration2 === undefined && (duration2 = duration1),
+                    rotateBehavior === undefined && (rotateBehavior = "random"),
+                    rotation1 === undefined && (rotation1 = 0),
+                    rotation2 === undefined && (rotation2 = rotation1),
+                    spin1 === undefined && (spin1 = 0),
+                    spin2 === undefined && (spin2 = spin1),
+                    dir1 === undefined && (dir1 = 0),
+                    dir2 === undefined && (dir2 = dir1),
+                    velocity1 === undefined && (velocity1 = 0),
+                    velocity2 === undefined && (velocity2 = velocity1),
+                    gravityDir === undefined && (gravityDir = 180),
+                    scaleStart2 === undefined && (scaleStart2 = scaleStart1),
+                    scaleEnd1 === undefined && (scaleEnd1 = scaleStart1),
+                    scaleEnd2 === undefined && (scaleEnd2 = scaleEnd1),
+                    scaleIn === undefined && (scaleIn = 0),
+                    scaleOut === undefined && (scaleOut = 0),
+                    colors = (colors === undefined ? [-1] : colors.split(", ").map(number => Number(number)));
+                let duration, x, y, spin, dir, v, r, sStart, sEnd, color, random;
+                for (i = start; i <= end; i += 1 / particlesPerBeat) {
+                    // duration, dir, v, s, color
+                    duration = randomValue(duration1, duration2 - duration1),
+                        spin = randomValue(spin1, spin2 - spin1),
+                        dir = randomValue(dir1, dir2 - dir1),
+                        v = randomValue(velocity1, velocity2 - velocity1),
+                        sStart = randomValue(scaleStart1, scaleStart2 - scaleStart1),
+                        color = randomFromArray(colors),
+                        random = Math.random();
+                    // startIndex
+                    const start = i, end = i + (gravity ? duration2 : duration);
+                    let freeIndex = particles.indexOf(particles.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+                    freeIndex == -1 && (freeIndex = particles.length, particles.push([])),
+                        startOrder = 0, endOrder = 0,
+                        particles[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder });
+                    switch (shape) { // x, y
+                        case "point": x = x1, y = y1; break;
+                        case "linePoints":
+                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                            const angle = getAngle(x2 - x1, y2 - y1), dist = getDist(x2 - x1, y2 - y1);
+                            x = x1 + cos(angle) * dist * random, y = y1 + sin(angle) * dist * random;
+                            break;
+                        case "lineDir":
+                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                            x = x1 + cos(90 - x2) * y2 * random, y = y1 + sin(90 - x2) * y2 * random; break;
+                        case "rectanglePoints":
+                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                            x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
+                        case "rectangleSize":
+                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                            x = x1 - x2 / 2 + x2 * Math.random(), y = y1 - y2 / 2 + y2 * Math.random(); break;
+                        case "circlePoints":
+                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                            do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getDist((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
+                        case "circleSize":
+                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                            do { x = x1 - x2 / 2 + x2 * Math.random(), y = y1 - y2 / 2 + y2 * Math.random(); } while (getDist((x - x1) / x2, (y - y1) / y2) > 0.5); break;
+                        default: abort = true; return;
+                    }
+                    switch (rotateBehavior) { // r
+                        case "static": r = rotation1; break;
+                        case "random": r = randomValue(rotation1, rotation2 - rotation1); break;
+                        case "follow": r = dir; break; // NOT YET
+                    }
+                    switch (scaleBehavior) { // s
+                        case "random": sEnd = randomValue(scaleEnd1, scaleEnd2 - scaleEnd1); break;
+                        case "relative": sEnd = (sStart - scaleStart1) / (scaleStart2 - scaleStart1) * (scaleEnd2 - scaleEnd1) + scaleEnd1; break;
+                        default: break;
+                    }
+                    events.push({
+                        time: i, angle: 0, type: "deco", order: 0, hide: true,
+                        id: particlePrefix + "_" + freeIndex + "_normal",
+                        x: x, y: y, r: 0
+                    }, {
+                        time: i, angle: 0, type: "deco", order: 1,
+                        id: particlePrefix + "_" + freeIndex + "_normal",
+                        x: x + cos(90 - dir) * v * duration, y: y + sin(90 - dir) * v * duration,
+                        duration: duration
+                    }, {
+                        time: i, angle: 0, type: "deco", order: 2, hide: false,
+                        id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (gravity ? "_gravity" : "_normal"),
+                        sprite: sprite, recolor: color, ox: ox, oy: oy,
+                        x: 0, y: 0, r: r, sx: (scaleIn && scaleInType != "sy" ? 0 : sStart), sy: (scaleIn && scaleInType != "sx" ? 0 : sStart)
+                    }, {
+                        time: i, angle: 0, type: "deco", order: 3,
+                        id: particlePrefix + "_" + freeIndex + "_sprite",
+                        r: r + spin * duration, sx: (scaleIn || scaleOut) ? undefined : sEnd, sy: (scaleIn || scaleOut) ? undefined : sEnd,
+                        duration: duration
+                    }, {
+                        time: i + duration, angle: 0, type: "deco",
+                        id: particlePrefix + "_" + freeIndex + "_sprite",
+                        hide: true
+                    }),
+                        (scaleIn || scaleOut) && (
+                            events.push({
+                                time: i + scaleIn, angle: 0, type: "deco",
+                                id: particlePrefix + "_" + freeIndex + "_sprite",
+                                sx: sEnd, sy: sEnd,
+                                duration: duration - scaleIn - scaleOut
+                            })
+                        ),
+                        scaleIn && (
+                            events.push({
+                                time: i, angle: 0, type: "deco", order: 3,
+                                id: particlePrefix + "_" + freeIndex + "_sprite",
+                                sx: sStart, sy: sStart,
+                                duration: scaleIn
+                            })
+                        ),
+                        scaleOut && (
+                            events.push({
+                                time: i + duration - scaleOut, angle: 0, type: "deco",
+                                id: particlePrefix + "_" + freeIndex + "_sprite",
+                                sx: scaleOutType != "sy" ? 0 : sEnd, sy: scaleOutType != "sx" ? 0 : sEnd,
+                                duration: scaleOut
+                            })
+                        ),
+                        gravity && (
+                            events.push({
+                                time: i, angle: 0, type: "deco", order: 1, hide: false,
+                                id: particlePrefix + "_" + freeIndex + "_gravity", parentid: particlePrefix + "_" + freeIndex + "_normal",
+                                x: 0, y: 0, sx: 0, r: 0,
+                                duration: duration2
+                            }, {
+                                time: i, angle: 0, type: "deco", order: 2,
+                                id: particlePrefix + "_" + freeIndex + "_gravity",
+                                x: cos(-90 - gravityDir) * gravity * (duration2 ** 2), y: sin(-90 - gravityDir) * gravity * (duration2 ** 2),
+                                duration: duration2, ease: "inQuad"
+                            }, {
+                                time: i + duration2, angle: 0, type: "deco",
+                                id: particlePrefix + "_" + freeIndex + "_gravity",
+                                hide: true
+                            })
+                        );
+                }
+            }
+        }]
     }];
 let openTool = tools[0],
     constants = {}, abort;
 //
-
 
 function beautifyText(text) {
     text = String(text)
@@ -1010,9 +1187,11 @@ function sin(d) { return Math.sin(d / 180 * Math.PI); }
 function randomValue(min, range) { return Math.floor(Math.random() * (range)) + min; }
 function newAngle(snap, minDist, maxDist) { let angle; do { angle = randomValue(0, snap) * 360 / snap; } while ((minDist !== undefined && (normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist))); return angle; }
 function randomAngle(snap, minAngle, maxAngle) { return randomValue(minAngle / 360 * snap, (maxAngle - minAngle) / 360 * snap) * 360 / snap; }
+function average(...args) { return args.reduce((prev, current) => prev + current, 0) / args.length }
+function randomFromArray(array) { return array[randomValue(0, array.length)]; }
 
 // Text Generator utility
-const availiableLetters = [{ letter: " ", length: 4 }, { letter: "a", length: 8 }, { letter: "b", length: 8 }, { letter: "c", length: 7 }, { letter: "d", length: 8 }, { letter: "e", length: 8 }, { letter: "f", length: 3 }, { letter: "g", length: 8 }, { letter: "h", length: 8 }, { letter: "i", length: 2 }, { letter: "j", length: 2 }, { letter: "k", length: 8 }, { letter: "l", length: 2 }, { letter: "m", length: 11 }, { letter: "n", length: 8 }, { letter: "o", length: 8 }, { letter: "p", length: 8 }, { letter: "q", length: 8 }, { letter: "r", length: 5 }, { letter: "s", length: 7 }, { letter: "t", length: 3 }, { letter: "u", length: 8 }, { letter: "v", length: 8 }, { letter: "w", length: 11 }, { letter: "x", length: 7 }, { letter: "y", length: 8 }, { letter: "z", length: 8 }, { letter: "#", length: 9 }, { letter: "A", length: 8 }, { letter: "B", length: 8 }, { letter: "C", length: 8 }, { letter: "D", length: 8 }, { letter: "E", length: 7 }, { letter: "F", length: 7 }, { letter: "G", length: 9 }, { letter: "H", length: 8 }, { letter: "I", length: 1 }, { letter: "J", length: 3 }, { letter: "K", length: 8 }, { letter: "L", length: 4 }, { letter: "M", length: 11 }, { letter: "N", length: 8 }, { letter: "O", length: 9 }, { letter: "P", length: 8 }, { letter: "Q", length: 9 }, { letter: "R", length: 8 }, { letter: "S", length: 8 }, { letter: "T", length: 7 }, { letter: "U", length: 8 }, { letter: "V", length: 8 }, { letter: "W", length: 11 }, { letter: "X", length: 7 }, { letter: "Y", length: 8 }, { letter: "Z", length: 7 }, { letter: "0", length: 8 }, { letter: "1", length: 1 }, { letter: "2", length: 7 }, { letter: "3", length: 8 }, { letter: "4", length: 8 }, { letter: "5", length: 7 }, { letter: "6", length: 8 }, { letter: "7", length: 6 }, { letter: "8", length: 8 }, { letter: "9", length: 8 }, { letter: "+", length: 5 }, { letter: "-", length: 4 }, { letter: "*", length: 4 }, { letter: "/", length: 3 }, { letter: "\\", length: 3 }, { letter: "%", length: 9 }, { letter: '"', length: 3 }, { letter: "'", length: 1 }, { letter: "&", length: 9 }, { letter: "~", length: 6 }, { letter: ".", length: 1 }, { letter: ",", length: 2 }, { letter: ":", length: 1 }, { letter: ";", length: 2 }, { letter: "_", length: 8 }, { letter: "<", length: 6 }, { letter: ">", length: 6 }, { letter: "|", length: 1 }, { letter: "´", length: 2 }, { letter: "`", length: 2 }, { letter: "^", length: 5 }, { letter: "°", length: 4 }, { letter: "[", length: 2 }, { letter: "]", length: 2 }, { letter: "{", length: 4 }, { letter: "}", length: 4 }, { letter: "=", length: 6 }], prefix = "digitalDiscoFontIncomplete";
+const availiableLetters = [{ letter: " ", length: 4 }, { letter: "a", length: 8 }, { letter: "b", length: 8 }, { letter: "c", length: 7 }, { letter: "d", length: 8 }, { letter: "e", length: 8 }, { letter: "f", length: 3 }, { letter: "g", length: 8 }, { letter: "h", length: 8 }, { letter: "i", length: 2 }, { letter: "j", length: 2 }, { letter: "k", length: 8 }, { letter: "l", length: 2 }, { letter: "m", length: 11 }, { letter: "n", length: 8 }, { letter: "o", length: 8 }, { letter: "p", length: 8 }, { letter: "q", length: 8 }, { letter: "r", length: 5 }, { letter: "s", length: 7 }, { letter: "t", length: 3 }, { letter: "u", length: 8 }, { letter: "v", length: 8 }, { letter: "w", length: 11 }, { letter: "x", length: 7 }, { letter: "y", length: 8 }, { letter: "z", length: 8 }, { letter: "#", length: 9 }, { letter: "A", length: 8 }, { letter: "B", length: 8 }, { letter: "C", length: 8 }, { letter: "D", length: 8 }, { letter: "E", length: 7 }, { letter: "F", length: 7 }, { letter: "G", length: 9 }, { letter: "H", length: 8 }, { letter: "I", length: 1 }, { letter: "J", length: 3 }, { letter: "K", length: 8 }, { letter: "L", length: 4 }, { letter: "M", length: 11 }, { letter: "N", length: 8 }, { letter: "O", length: 9 }, { letter: "P", length: 8 }, { letter: "Q", length: 9 }, { letter: "R", length: 8 }, { letter: "S", length: 8 }, { letter: "T", length: 7 }, { letter: "U", length: 8 }, { letter: "V", length: 8 }, { letter: "W", length: 11 }, { letter: "X", length: 7 }, { letter: "Y", length: 8 }, { letter: "Z", length: 7 }, { letter: "0", length: 8 }, { letter: "1", length: 1 }, { letter: "2", length: 7 }, { letter: "3", length: 8 }, { letter: "4", length: 8 }, { letter: "5", length: 7 }, { letter: "6", length: 8 }, { letter: "7", length: 6 }, { letter: "8", length: 8 }, { letter: "9", length: 8 }, { letter: "+", length: 5 }, { letter: "-", length: 4 }, { letter: "*", length: 4 }, { letter: "/", length: 3 }, { letter: "\\", length: 3 }, { letter: "%", length: 9 }, { letter: '"', length: 3 }, { letter: "'", length: 1 }, { letter: "&", length: 9 }, { letter: "~", length: 6 }, { letter: ".", length: 1 }, { letter: ",", length: 2 }, { letter: ":", length: 1 }, { letter: ";", length: 2 }, { letter: "_", length: 8 }, { letter: "<", length: 6 }, { letter: ">", length: 6 }, { letter: "|", length: 1 }, { letter: "´", length: 2 }, { letter: "`", length: 2 }, { letter: "^", length: 5 }, { letter: "°", length: 4 }, { letter: "[", length: 2 }, { letter: "]", length: 2 }, { letter: "{", length: 4 }, { letter: "}", length: 4 }, { letter: "=", length: 6 }, { letter: "(", length: 2 }, { letter: ")", length: 2 }, { letter: "!", length: 1 }, { letter: "?", length: 8 }], prefix = "digitalDiscoFontIncomplete";
 let texts = [];
 function getIndexOfText(id) { for (let i = 0; i < texts.length; i++) { if (texts[i].id == id) { return i; } } return -1; }
 function getIndexOfLetter(letter) { for (let i = 0; i < availiableLetters.length; i++) { if (availiableLetters[i].letter == letter) { return i; } } return -1; }
@@ -1023,59 +1202,69 @@ function getTextLength(text) { return text.split("").reduce((length, letter) => 
 const fakeBlockPrefix = "fakeBlock";
 let fakeBlocks = [];
 function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearEase, appearLength) {
-    radius === undefined && (radius = 51)
+    const start = time, end = time + duration;
+    let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+    freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
+        startOrder = 0, endOrder = 0,
+        fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
+        radius === undefined && (radius = 51)
     const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
     bonusX === undefined && (bonusX = 0);
     events.push({
         time: time, angle: 0, type: "deco", order: 0, hide: false,
-        id: fakeBlockPrefix + "_" + fakeBlocks.length, parentid: parent,
+        id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
         sprite: "block.png",
         x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
         ox: 9, oy: 9, sx: appearLength ? 0 : undefined, sy: appearLength ? 0 : undefined
     }, {
         time: time, angle: 0, type: "deco", order: 1,
-        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        id: fakeBlockPrefix + "_" + freeIndex,
         x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
         duration: duration
     }, {
         time: time + duration, angle: 0, type: "deco",
-        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        id: fakeBlockPrefix + "_" + freeIndex,
         hide: true
     }),
         appearLength && (events.push({
             time: time, angle: 0, type: "deco", order: 1,
-            id: fakeBlockPrefix + "_" + fakeBlocks.length,
+            id: fakeBlockPrefix + "_" + freeIndex,
             sx: 1, sy: 1,
             duration: appearLength, ease: appearEase
-        })), fakeBlocks.push({ time: time, r: r, xStart: xStart, x: x, duration: duration, parent: parent });
+        }));
 }
 function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearEase, appearLength) {
-    radius === undefined && (radius = 36.5)
+    const start = time, end = time + duration;
+    let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+    freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
+        startOrder = 0, endOrder = 0,
+        fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
+        radius === undefined && (radius = 36.5)
     const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
     bonusX === undefined && (bonusX = 0);
     events.push({
         time: time, angle: 0, type: "deco", order: 0, hide: false,
-        id: fakeBlockPrefix + "_" + fakeBlocks.length, parentid: parent,
+        id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
         sprite: "side.png",
         x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
         ox: 7, oy: 10, sx: appearLength ? 0 : undefined, sy: appearLength ? 0 : undefined,
         r: r
     }, {
         time: time, angle: 0, type: "deco", order: 1,
-        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        id: fakeBlockPrefix + "_" + freeIndex,
         x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
         duration: duration
     }, {
         time: time + duration, angle: 0, type: "deco",
-        id: fakeBlockPrefix + "_" + fakeBlocks.length,
+        id: fakeBlockPrefix + "_" + freeIndex,
         hide: true
     }),
         appearLength && (events.push({
             time: time, angle: 0, type: "deco", order: 1,
-            id: fakeBlockPrefix + "_" + fakeBlocks.length,
+            id: fakeBlockPrefix + "_" + freeIndex,
             sx: 1, sy: 1,
             duration: appearLength, ease: appearEase
-        })), fakeBlocks.push({ time: time, r: r, xStart: xStart, x: x, duration: duration, parent: parent });
+        }));
 }
 
 function recreateBlocks(chart, startTime, endTime, parent, speed, scrollSpeed, spawnOffset, randomR, fakes, onlyInPart, radius, appearEase, appearLength) {
@@ -1097,3 +1286,7 @@ function recreateBlocks(chart, startTime, endTime, parent, speed, scrollSpeed, s
         }
     });
 }
+
+// Particle Generator
+const particlePrefix = "particle";
+let particles = [], gravityParticles = [];
