@@ -6,6 +6,10 @@ for Beatblock
 ## Tools in Penta's Beattools
 1. Beatblock Text Generator using a spritesheet (Use K4kadu's unless you really need to use this one)
 2. Beatblock Untagger (single tag/all tags)
+3. Beatblock Event Randomizer
+4. Beatblock Deco Checker (and whether they get hidden or not)
+5. Beatblock Circle Stream Generator
+6. Beatblock Particle Generator
 
 ## How to use (Penta's Beattools)
 Will get updated to include other tools.
