@@ -556,8 +556,9 @@ const toolSelect = document.querySelector("#selectTool"),
             { name: "spawnOffset", desc: "Parameter for the fake blocks", type: "number", required: true },
             { name: "speed", desc: "Parameter for the fake blocks", type: "number", required: false },
             { name: "scrollSpeed", desc: "Parameter for the fake blocks", type: "number", required: false },
+            { name: "entryType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
+            { name: "entryEase", desc: "Easing for entry animation of the fake block", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
             { name: "entryTime", desc: "How long the entry animation of the fake block takes", type: "number", required: false },
-            { name: "entryEase", desc: "Easing for entry animation of the fake block", type: "number", required: false },
             { name: "defaultPaddleSize", desc: "How large the paddle should be under default conditions\nWill change relative to the circle radius", type: "number", required: false, newRow: true },
             { name: "turnSpeed", desc: "How fast you should turn under default conditions\nWill change relative to the circle radius", type: "number", required: true },
             { name: "turnLeeway", desc: "The time inbetween blocks to turn 180° to the next circle\nThe other time will be used to ease p.drawScale\nValues: 0-1", type: "number", required: true },
@@ -668,7 +669,7 @@ const toolSelect = document.querySelector("#selectTool"),
                 events.push({
                     time: circle.start - constants.spawnOffset, angle: 0, type: "deco",
                     id: "amox_" + i, sx: 0, x: 300 + circle.x, y: 180 + circle.y,
-                }), recreateBlocks(events, circle.start, (i == circles.length - 1 ? 800 : circle.end), "amox_" + i, constants.speed, constants.scrollSpeed, constants.spawnOffset, undefined, 0, true, circle.r, constants.entryEase, constants.entryTime);
+                }), runFunction("fakeBlockGenerator", "fakeBlockPart", events, circle.start, (i == circles.length - 1 ? 800 : circle.end), "amox_" + i, constants.speed, constants.scrollSpeed, constants.spawnOffset, undefined, 0, true, circle.r, constants.appearType, constants.entryEase, constants.entryTime);
             }),
                 resultDiv.innerText = JSON.stringify(constants.startEvents),
                 resultDiv2.innerText = JSON.stringify(events);
@@ -678,13 +679,13 @@ const toolSelect = document.querySelector("#selectTool"),
         dontUseEvents: true
     }, {
         name: "particleGenerator",
-        desc: "",
+        desc: "Outputs tag data",
         constants: [],
         before: () => { },
         after: () => { },
         functions: [{
             name: "particleEmitter",
-            desc: "Emits particles\nOutputs tag data",
+            desc: "Emits particles",
             params: [
                 { name: "start", desc: "", type: "number", required: false, newRow: true },
                 { name: "end", desc: "", type: "number", required: true },
@@ -705,6 +706,7 @@ const toolSelect = document.querySelector("#selectTool"),
                 { name: "dir2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "velocity1", desc: "Particle speed", type: "number", required: false },
                 { name: "velocity2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "movementEase", desc: "Ease option to fake ac/deceleration", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
                 { name: "gravityDir", desc: "Direction of gravity", type: "number", required: false, newRow: true },
                 { name: "gravity", desc: "Strength of gravity", type: "number", required: false },
                 { name: "scaleBehavior", desc: "Whether smaller particles will stay smaller (Relative) or can grow to be bigger (Random)\nNoticable with different start- and endscale ranges", type: "select", values: ["random", "relative"], required: true, newRow: true },
@@ -713,15 +715,17 @@ const toolSelect = document.querySelector("#selectTool"),
                 { name: "scaleEnd1", desc: "", type: "number", required: false },
                 { name: "scaleEnd2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "scaleInType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
+                { name: "scaleInEase", desc: "Ease of the entry animation", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
                 { name: "scaleIn", desc: "Duration of the entry animation", type: "number", required: false },
                 { name: "scaleOutType", desc: "Determines the axis for the exit animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false },
+                { name: "scaleOutEase", desc: "Ease of the exit animation", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
                 { name: "scaleOut", desc: "Duration of the exit animation", type: "number", required: false },
                 { name: "sprite", desc: "", type: "string", required: false, newRow: true },
                 { name: "ox", desc: "", type: "number", required: false },
                 { name: "oy", desc: "", type: "number", required: false },
                 { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ', '\nExamples: '0, 1, 2, 3', '-1', '0, 0, 0, 1'", type: "string", required: false }
             ],
-            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleIn, scaleOutType, scaleOut, sprite, ox, oy, colors) => {
+            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, movementEase, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleInEase, scaleIn, scaleOutType, scaleOutEase, scaleOut, sprite, ox, oy, colors) => {
                 start === undefined && (start = 0),
                     duration2 === undefined && (duration2 = duration1),
                     rotateBehavior === undefined && (rotateBehavior = "random"),
@@ -797,8 +801,8 @@ const toolSelect = document.querySelector("#selectTool"),
                     }, {
                         time: i, angle: 0, type: "deco", order: 1,
                         id: particlePrefix + "_" + freeIndex + "_normal",
-                        x: x + cos(90 - dir) * v * duration, y: y + sin(90 - dir) * v * duration,
-                        duration: duration
+                        x: x + cos(-90 - dir) * v * duration, y: y + sin(-90 - dir) * v * duration,
+                        duration: duration, ease: movementEase
                     }, {
                         time: i, angle: 0, type: "deco", order: 2, hide: false,
                         id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (gravity ? "_gravity" : "_normal"),
@@ -827,7 +831,7 @@ const toolSelect = document.querySelector("#selectTool"),
                                 time: i, angle: 0, type: "deco", order: 3,
                                 id: particlePrefix + "_" + freeIndex + "_sprite",
                                 sx: sStart, sy: sStart,
-                                duration: scaleIn
+                                duration: scaleIn, ease: scaleInEase
                             })
                         ),
                         scaleOut && (
@@ -835,7 +839,7 @@ const toolSelect = document.querySelector("#selectTool"),
                                 time: i + duration - scaleOut, angle: 0, type: "deco",
                                 id: particlePrefix + "_" + freeIndex + "_sprite",
                                 sx: scaleOutType != "sy" ? 0 : sEnd, sy: scaleOutType != "sx" ? 0 : sEnd,
-                                duration: scaleOut
+                                duration: scaleOut, ease: scaleOutEase
                             })
                         ),
                         gravity && (
@@ -856,6 +860,56 @@ const toolSelect = document.querySelector("#selectTool"),
                             })
                         );
                 }
+            }
+        }]
+    }, {
+        name: "fakeBlockGenerator",
+        desc: "Outputs tag data",
+        constants: [],
+        before: () => { },
+        after: () => { },
+        functions: [{
+            name: "fakeBlockPart",
+            desc: "Fakes notes within the specified time\nOnly fakes Blocks and Sides for now\nNever expect future updates to include hold fakes support",
+            params: [
+                { name: "chart", desc: "", type: "json", required: true, newRow: true },
+                { name: "start", desc: "", type: "number", required: false, newRow: true },
+                { name: "end", desc: "", type: "number", required: true },
+                { name: "parent", desc: "", type: "string", required: false, newRow: true },
+                { name: "speed", desc: "", type: "number", required: false, newRow: true },
+                { name: "scrollSpeed", desc: "", type: "number", required: false },
+                { name: "spawnOffset", desc: "", type: "number", required: false },
+                { name: "randomDirections", desc: "Whether the notes will come from random directions", type: "boolean", required: false, newRow: true },
+                { name: "fakes", desc: "How many fakes per note will appear\nWorks great with Random Directions", type: "number", required: false, newRow: true },
+                { name: "onlyInPart", desc: "True: Only the notes within the time will get fully faked\nFalse: Notes will only get faked within the part and will spontaniously appear/dissappear at the start/end", type: "boolean", required: false, newRow: true },
+                { name: "radius", desc: "The distance to the player when the blocks hit\nDefault: 51", type: "number", required: false, newRow: true },
+                { name: "appearType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
+                { name: "appearEase", desc: "Ease of the entry animation", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
+                { name: "appearLength", desc: "Duration of the entry animation", type: "number", required: false }
+            ],
+            function: (chart, start, end, parent, speed, scrollSpeed, spawnOffset, randomDirections, fakes, onlyInPart, radius, appearType, appearEase, appearLength) => {
+                start === undefined && (start = 0),
+                    speed === undefined && (speed = 70),
+                    scrollSpeed === undefined && (scrollSpeed = 1),
+                    spawnOffset === undefined && (spawnOffset = 8),
+                    fakes === undefined && (fakes = 0)
+                chart.forEach(event => {
+                    if (onlyInPart ? event.time <= end && event.time >= start : event.time - spawnOffset < end && event.time > start) {
+                        const fakeStart = onlyInPart ? event.time - spawnOffset : Math.max(event.time - spawnOffset, start), fakeEnd = Math.min(event.time, end);
+                        switch (event.type) {
+                            case "block":
+                                newFakeBlock(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - start)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomDirections ? randomValue(-75, 151) : 0, 0, radius, appearType, appearEase, appearLength);
+                                for (let i = 0; i < fakes; i++) {
+                                    newFakeBlock(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
+                                } break;
+                            case "side":
+                                newFakeSide(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - start)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomDirections ? randomValue(-75, 151) : 0, 0, radius, appearType, appearEase, appearLength);
+                                for (let i = 0; i < fakes; i++) {
+                                    newFakeSide(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
+                                } break;
+                        }
+                    }
+                });
             }
         }]
     }];
@@ -1201,7 +1255,7 @@ function getTextLength(text) { return text.split("").reduce((length, letter) => 
 // Fake Block Utility
 const fakeBlockPrefix = "fakeBlock";
 let fakeBlocks = [];
-function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearEase, appearLength) {
+function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength) {
     const start = time, end = time + duration;
     let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
     freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
@@ -1215,7 +1269,7 @@ function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radi
         id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
         sprite: "block.png",
         x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
-        ox: 9, oy: 9, sx: appearLength ? 0 : undefined, sy: appearLength ? 0 : undefined
+        ox: 9, oy: 9, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined)
     }, {
         time: time, angle: 0, type: "deco", order: 1,
         id: fakeBlockPrefix + "_" + freeIndex,
@@ -1233,7 +1287,7 @@ function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radi
             duration: appearLength, ease: appearEase
         }));
 }
-function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearEase, appearLength) {
+function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength) {
     const start = time, end = time + duration;
     let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
     freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
@@ -1247,7 +1301,7 @@ function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radiu
         id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
         sprite: "side.png",
         x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
-        ox: 7, oy: 10, sx: appearLength ? 0 : undefined, sy: appearLength ? 0 : undefined,
+        ox: 7, oy: 10, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined),
         r: r
     }, {
         time: time, angle: 0, type: "deco", order: 1,
@@ -1265,26 +1319,6 @@ function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radiu
             sx: 1, sy: 1,
             duration: appearLength, ease: appearEase
         }));
-}
-
-function recreateBlocks(chart, startTime, endTime, parent, speed, scrollSpeed, spawnOffset, randomR, fakes, onlyInPart, radius, appearEase, appearLength) {
-    chart.forEach(event => {
-        if (onlyInPart ? event.time <= endTime && event.time >= startTime : event.time - spawnOffset < endTime && event.time > startTime) {
-            const fakeStart = onlyInPart ? event.time - spawnOffset : Math.max(event.time - spawnOffset, startTime), fakeEnd = Math.min(event.time, endTime);
-            switch (event.type) {
-                case "block":
-                    newFakeBlock(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - startTime)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomR ? randomValue(-75, 151) : 0, 0, radius, appearEase, appearLength);
-                    for (let i = 0; i < fakes; i++) {
-                        newFakeBlock(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
-                    } break;
-                case "side":
-                    newFakeSide(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - startTime)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomR ? randomValue(-75, 151) : 0, 0, radius, appearEase, appearLength);
-                    for (let i = 0; i < fakes; i++) {
-                        newFakeSide(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
-                    } break;
-            }
-        }
-    });
 }
 
 // Particle Generator
