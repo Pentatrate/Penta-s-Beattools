@@ -10,6 +10,7 @@ for Beatblock
 4. Beatblock Deco Checker (and whether they get hidden or not)
 5. Beatblock Circle Stream Generator
 6. Beatblock Particle Generator
+7. Beatblock Fake Block Generator (includes Sides)
 
 ## How to use (Penta's Beattools)
 Will get updated to include other tools.
