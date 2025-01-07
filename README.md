@@ -17,7 +17,7 @@ Will get updated to include other tools.
 
 0. Save your level. Beatblock may crash when you make an error here.
 1. Download all .png and .json files and copy them into your level files.
-	You may choose to not download some assets if you are sure they aren't required.
+	You may choose to not download some assets if you are sure they aren't required for your specific situation.
 2. Download the "Penta's Beattools" folder somewhere on your PC and open "Penta's Beattools.html".
 	There is no official way to download a folder directly as far as I know, but it's just 3 files and two are in a subfolder.
 3. Select the tool you want to use (Right now only Text Generator).
