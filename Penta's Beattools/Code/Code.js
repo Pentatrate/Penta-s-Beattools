@@ -408,7 +408,7 @@ const toolSelect = document.querySelector("#selectTool"),
         constants: [
             { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
             { name: "type", desc: "What type of randomizer to run", type: "select", values: ["blocks", "mines"], required: true, newRow: true },
-            { name: "mineBehavior", desc: "How mines should be moved when there's a block/hold on the same beat\nOptional when you don't have any mines or set Type to mine", type: "select", values: ["opposite", "close"], required: false },
+            { name: "mineBehavior", desc: "How mines should be moved\nOptional when you don't have any mines or set Type to mine", type: "select", values: ["opposite", "close"], required: false },
             { name: "minTime", desc: "The time the randomizer starts", type: "number", required: false, newRow: true },
             { name: "maxTime", desc: "The time the randomizer ends", type: "number", required: false },
             { name: "startAngle", desc: "The angle the randomizer starts", type: "number", required: false, newRow: true },
@@ -447,10 +447,10 @@ const toolSelect = document.querySelector("#selectTool"),
                 time = constants.chart.filter(event => event.time > time)[0].time;
                 switch (constants.type) {
                     case "blocks":
-                        constants.chart.filter(event => event.time == time && ["block", "inverse", "hold"].includes(event.type)).forEach(event => {
+                        constants.chart.filter(event => event.time == time && ["block", "hold"].includes(event.type)).forEach(event => {
                             if (lastEvent) {
-                                const prevEvent = constants.chart.filter(event2 => ["block", "inverse", "hold"].includes(event2.type) && event2.time < event.time && event2.time >= event.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0],
-                                    preverEvent = prevEvent ? constants.chart.filter(event2 => ["block", "inverse", "hold"].includes(event2.type) && event2.time < prevEvent.time && event2.time >= prevEvent.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0] : undefined;
+                                const prevEvent = constants.chart.filter(event2 => ["block", "hold"].includes(event2.type) && event2.time < event.time && event2.time >= event.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0],
+                                    preverEvent = prevEvent ? constants.chart.filter(event2 => ["block", "hold"].includes(event2.type) && event2.time < prevEvent.time && event2.time >= prevEvent.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0] : undefined;
                                 ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2 != event && event2.time <= event.time && event2.time + event2.duration >= event.time)[0]; // No way I'm accounting for multiple overlapping holds
                                 switch (true) {
                                     case ovlpEvent && ovlpEvent.time + ovlpEvent.duration == event.time: // Place block on top of hold
@@ -475,7 +475,7 @@ const toolSelect = document.querySelector("#selectTool"),
                                 lastEvent = event;
                         }),
                             constants.chart.filter(event => event.time == time && ["mine", "side"].includes(event.type)).forEach(event => {
-                                ovlpEvent = constants.chart.filter(event => event.time == time && ["block", "inverse", "hold"].includes(event.type))[0];
+                                ovlpEvent = constants.chart.filter(event => event.time == time && ["block", "hold"].includes(event.type))[0];
                                 if (ovlpEvent) { // Overlapping block or hold start
                                     event.angle = ovlpEvent.angle + mineSideBehavior(event.type, lastDir);
                                 } else {
@@ -487,7 +487,7 @@ const toolSelect = document.querySelector("#selectTool"),
                                         if (ovlpEvent) { // Overlapping hold middle - close mines dont make sense here
                                             event.angle = ovlpEvent.angle + (ovlpEvent.angle2 - ovlpEvent.angle) / ovlpEvent.duration * (event.time - ovlpEvent.time) + (event.type == "side" ? constants.sideDir * holdDir : 180);
                                         } else { // No block or hold to base placement off of
-                                            console.log("DAMMIT MINE", event.time),
+                                            console.log("DAMMIT", event.time),
                                                 event.angle = newAngle(constants.snap);
                                         }
                                     }
@@ -574,7 +574,7 @@ const toolSelect = document.querySelector("#selectTool"),
         before: () => {
             constants.startEvents = [], lastDir = randomValue(-0.5, 2) * 2, lastAngle = 0;
             let angleDiffDefault = (42 + 9) * constants.turnSpeed, paddleSizeDefault = (42 + 9) * (constants.defaultPaddleSize || 70),
-                radius = constants.startRadius || 50,
+                radius = constants.startRadius || 51,
                 blockTimeDiff = 1 / constants.blocksPerBeat, calculationSegments = (constants.lineSegmentsPerBlock || 1), lineSegmentTimeDiff = blockTimeDiff / (constants.lineSegmentsPerBlock || 1),
                 x = constants.startX - 300, y = constants.startY - 180, angleDiff = angleDiffDefault / radius, lastX = -angleDiffDefault / radius * blockTimeDiff * lastDir + x, lastY = -radius + y, circles = [], lines = [];
             constants.startEvents.push(
@@ -723,10 +723,9 @@ const toolSelect = document.querySelector("#selectTool"),
                 { name: "sprite", desc: "", type: "string", required: false, newRow: true },
                 { name: "ox", desc: "", type: "number", required: false },
                 { name: "oy", desc: "", type: "number", required: false },
-                { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ', '\nExamples: '0, 1, 2, 3', '-1', '0, 0, 0, 1'", type: "string", required: false },
-                { name: "parent", desc: "", type: "string", required: false, newRow: true }
+                { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ', '\nExamples: '0, 1, 2, 3', '-1', '0, 0, 0, 1'", type: "string", required: false }
             ],
-            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, movementEase, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleInEase, scaleIn, scaleOutType, scaleOutEase, scaleOut, sprite, ox, oy, colors, parent) => {
+            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, movementEase, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleInEase, scaleIn, scaleOutType, scaleOutEase, scaleOut, sprite, ox, oy, colors) => {
                 start === undefined && (start = 0),
                     duration2 === undefined && (duration2 = duration1),
                     rotateBehavior === undefined && (rotateBehavior = "random"),
@@ -797,7 +796,7 @@ const toolSelect = document.querySelector("#selectTool"),
                     }
                     events.push({
                         time: i, angle: 0, type: "deco", order: 0, hide: true,
-                        id: particlePrefix + "_" + freeIndex + "_normal", parentid: parent,
+                        id: particlePrefix + "_" + freeIndex + "_normal",
                         x: x, y: y, r: 0
                     }, {
                         time: i, angle: 0, type: "deco", order: 1,
@@ -1128,8 +1127,7 @@ function convertInput(input, type, element) {
 
 
 // Init
-resultDiv.innerText = "Hover over some tool, constant, event and parameter names to get tooltips\nThis is version " + version,
-resultDiv2.innerText = "The console may give you additional information when running",
+resultDiv.innerText = "Hover over some tool, constant, event and parameter names to get tooltips",
     tools.forEach(tool => {
         const option = document.createElement("option");
         option.innerText = beautifyText(tool.name),
@@ -1231,7 +1229,6 @@ resultDiv2.innerText = "The console may give you additional information when run
 
 
 // General utility
-const version = "1.1"
 let events = [], lastAngle = 0, lastDir = 1;
 function normalizeAngle(d) { return ((d % 360) + 360) % 360; }
 function compareAnglesLR(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (180 > tempDiff && tempDiff >= 0 ? "left" : "right"); }
