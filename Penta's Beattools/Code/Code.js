@@ -1,4 +1,5 @@
-const toolSelect = document.querySelector("#selectTool"),
+const version = "1.2",
+    toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
     toolLabel = document.querySelector("#toolName"),
     resultDiv = document.querySelector("#result"),
@@ -404,36 +405,40 @@ const toolSelect = document.querySelector("#selectTool"),
         dontUseEvents: true
     }, {
         name: "randomizer",
-        desc: "Randomizes existing notes in your chart\nDoesn't support multiple blocks/holds at the same time\nDoes support one block/hold and one mine and/or side at the same time",
+        desc: "Randomizes existing notes in your chart\nType Blocks and Mines don't support multiple blocks/holds at the same time\nDoes support one block/hold and one mine and/or side at the same time",
         constants: [
             { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
-            { name: "type", desc: "What type of randomizer to run", type: "select", values: ["blocks", "mines"], required: true, newRow: true },
-            { name: "mineBehavior", desc: "How mines should be moved\nOptional when you don't have any mines or set Type to mine", type: "select", values: ["opposite", "close"], required: false },
+            { name: "type", desc: "What type of randomizer to run\nReady: Assumes all notes are aligned so you only have to point your paddle to 90° to hit every note without moving", type: "select", values: ["blocks", "mines", "ready"], required: true, newRow: true },
+            { name: "mineBehavior", desc: "How mines should be moved when there's a block/hold on the same beat\nOptional when you don't have any mines or set Type to Mines", type: "select", values: ["opposite", "close", "relative"], required: false },
+            { name: "blocksOnHolds", desc: "Useful for holdLeniency\nOptional when you don't have any holds or set Type to Mines\nFor Type set to Ready: Whether all holds should have the same amount of additional 360° rotations", type: "boolean", required: false },
             { name: "minTime", desc: "The time the randomizer starts", type: "number", required: false, newRow: true },
             { name: "maxTime", desc: "The time the randomizer ends", type: "number", required: false },
             { name: "startAngle", desc: "The angle the randomizer starts", type: "number", required: false, newRow: true },
             { name: "snap", desc: "The angle snap", type: "number", required: true },
             { name: "minDist", desc: "The minimum angle between two notes", type: "number", required: false },
             { name: "maxDist", desc: "The maximum angle between two notes", type: "number", required: false },
-            { name: "minHoldDir", desc: "The minimum angle the hold travels in one beat\nUsed 180 in Amphisbaena\nDefault: 0", type: "number", required: false, newRow: true },
-            { name: "maxHoldDir", desc: "The maximum angle the hold travels in one beat\nUsed 270 in Amphisbaena\nDefault: 0", type: "number", required: false },
-            { name: "sideDir", desc: "The angle between overlapping notes and sides\nAlso used for close mines... for now\n45 is recommended", type: "number", required: true, newRow: true },
+            { name: "minHoldDir", desc: "The minimum angle the hold travels in one beat\nDefault: 0\nFor Type set to Ready: minimum amout of additional 360° rotations", type: "number", required: false, newRow: true },
+            { name: "maxHoldDir", desc: "The maximum angle the hold travels in one beat\nDefault: 0\nFor Type set to Ready: maximum amout of additional 360° rotations", type: "number", required: false },
+            { name: "sideDir", desc: "The angle between overlapping notes and sides\nAlso used for close mines... for now\n45 is recommended", type: "number", required: false, newRow: true },
             { name: "closeTime", desc: "How close notes should be to be considered close\nDefault: 0", type: "number", required: false, newRow: true },
             { name: "closeDir", desc: "The angle close notes are moved\nDefault: 0", type: "number", required: false },
-            { name: "closeBehavior", desc: "How the angle of close notes should behave to their time difference\nDefault: Relative", type: "select", values: ["absolute", "relative"], required: false }
+            { name: "closeBehavior", desc: "How the angle of close notes should behave to their time difference\nDefault: Relative", type: "select", values: ["absolute", "relative"], required: false },
+            { name: "holdReorder", desc: "For Type set to Ready: the hold thats set to the highest order", type: "select", values: ["furthestStart", "closestStart", "furthestEnd", "closestEnd"], required: false, newRow: true }
         ],
         before: () => {
             constants.minHoldDir === undefined && (constants.minHoldDir = 0),
                 constants.maxHoldDir === undefined && (constants.maxHoldDir = 0),
+                constants.sideDir === undefined && (constants.sideDir = 0),
                 constants.closeTime === undefined && (constants.closeTime = 0),
                 constants.closeDir === undefined && (constants.closeDir = 0),
-                constants.closeBehavior === undefined && (constants.closeBehavior = "relative");
+                constants.closeBehavior === undefined && (constants.closeBehavior = "relative"),
+                constants.holdBehavior === undefined && (constants.holdBehavior = "ontop");
             if (constants.mineBehavior === undefined && constants.type == "blocks" && constants.chart.filter(event => event.time > time && event.time <= constants.maxTime).some(event => event.tpye == "mine")) {
                 resultDiv.innerText = "In this case the constant Mine Behavior is required", abort = true; return;
             }
             // Declare Vars and require Chart Data
             let value = constants.startAngle === undefined ? newAngle(constants.snap) : constants.startAngle,
-                lastEvent, time, ovlpEvent, holdDir;
+                lastEvent, time, ovlpEvent, holdDir, angles = [];
             time = constants.minTime !== undefined ? constants.minTime - 0.001 : -(10 ** 10),
                 constants.maxTime === undefined && (constants.maxTime = 10 ** 10),
                 constants.chart.sort((a, b) => a.time - b.time);
@@ -447,13 +452,13 @@ const toolSelect = document.querySelector("#selectTool"),
                 time = constants.chart.filter(event => event.time > time)[0].time;
                 switch (constants.type) {
                     case "blocks":
-                        constants.chart.filter(event => event.time == time && ["block", "hold"].includes(event.type)).forEach(event => {
+                        constants.chart.filter(event => event.time == time && ["block", "inverse", "hold"].includes(event.type)).forEach(event => {
                             if (lastEvent) {
-                                const prevEvent = constants.chart.filter(event2 => ["block", "hold"].includes(event2.type) && event2.time < event.time && event2.time >= event.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0],
-                                    preverEvent = prevEvent ? constants.chart.filter(event2 => ["block", "hold"].includes(event2.type) && event2.time < prevEvent.time && event2.time >= prevEvent.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0] : undefined;
+                                const prevEvent = constants.chart.filter(event2 => ["block", "inverse", "hold"].includes(event2.type) && event2.time < event.time && event2.time >= event.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0],
+                                    preverEvent = prevEvent ? constants.chart.filter(event2 => ["block", "inverse", "hold"].includes(event2.type) && event2.time < prevEvent.time && event2.time >= prevEvent.time - constants.closeTime).sort((a, b) => a.time - b.time).reverse()[0] : undefined;
                                 ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2 != event && event2.time <= event.time && event2.time + event2.duration >= event.time)[0]; // No way I'm accounting for multiple overlapping holds
                                 switch (true) {
-                                    case ovlpEvent && ovlpEvent.time + ovlpEvent.duration == event.time: // Place block on top of hold
+                                    case ovlpEvent && ovlpEvent.time + ovlpEvent.duration == event.time: // Place block on top of hold end
                                         value = ovlpEvent.angle2; break;
                                     case prevEvent: // Blocks too close
                                         value = lastAngle + closeDir * (preverEvent ? lastDir : randomValue(-0.5, 2) * 2) * (constants.closeBehavior == "relative" ? (event.time - prevEvent.time) / constants.closeTime : 1); break;
@@ -475,29 +480,22 @@ const toolSelect = document.querySelector("#selectTool"),
                                 lastEvent = event;
                         }),
                             constants.chart.filter(event => event.time == time && ["mine", "side"].includes(event.type)).forEach(event => {
-                                ovlpEvent = constants.chart.filter(event => event.time == time && ["block", "hold"].includes(event.type))[0];
-                                if (ovlpEvent) { // Overlapping block or hold start
-                                    event.angle = ovlpEvent.angle + mineSideBehavior(event.type, lastDir);
-                                } else {
-                                    ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2.time + event2.duration == event.time)[0]; // Same here
-                                    if (ovlpEvent) { // Overlapping hold end
-                                        event.angle = ovlpEvent.angle2 + mineSideBehavior(event.type, holdDir);
-                                    } else {
-                                        ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2.time <= event.time && event2.time + event2.duration >= event.time)[0]; // Same here
-                                        if (ovlpEvent) { // Overlapping hold middle - close mines dont make sense here
-                                            event.angle = ovlpEvent.angle + (ovlpEvent.angle2 - ovlpEvent.angle) / ovlpEvent.duration * (event.time - ovlpEvent.time) + (event.type == "side" ? constants.sideDir * holdDir : 180);
-                                        } else { // No block or hold to base placement off of
-                                            console.log("DAMMIT", event.time),
-                                                event.angle = newAngle(constants.snap);
-                                        }
-                                    }
+                                switch (true) {
+                                    case ovlpEvent = constants.chart.filter(event => event.time == time && ["block", "inverse", "hold"].includes(event.type))[0]: // Overlapping block or hold start
+                                        event.angle = ovlpEvent.angle + mineSideBehavior(event.type, lastDir); break;
+                                    case ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2.time + event2.duration == event.time)[0]: // Overlapping hold end
+                                        event.angle = ovlpEvent.angle2 + mineSideBehavior(event.type, holdDir); break;
+                                    case constants.blocksOnHolds && (ovlpEvent = constants.chart.filter(event2 => event2.type == "hold" && event2.time <= event.time && event2.time + event2.duration >= event.time)[0]): // Overlapping hold middle - close mines dont make sense here
+                                        event.angle = ovlpEvent.angle + (ovlpEvent.angle2 - ovlpEvent.angle) / ovlpEvent.duration * (event.time - ovlpEvent.time) + (event.type == "side" ? constants.sideDir * holdDir : 180); break;
+                                    default: // No block or hold to base placement off of
+                                        console.log("DAMMIT MINE", event.time), event.angle = newAngle(constants.snap); break;
                                 }
                             }); break;
                     case "mines":
                         constants.chart.filter(event => event.time == time && ["mine", "mineHold"].includes(event.type)).forEach(event => {
                             if (lastEvent) {
                                 ovlpEvent = constants.chart.filter(event2 => event2.type == "mineHold" && event2 != event && event2.time <= event.time && event2.time + event2.duration >= event.time)[0], // No way I'm accounting for multiple overlapping holds
-                                    value = (ovlpEvent && ovlpEvent.time + ovlpEvent.duration == event.time ? (ovlpEvent.angle2) : normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist))),
+                                    value = (ovlpEvent && ovlpEvent.time + ovlpEvent.duration == event.time ? (ovlpEvent.angle2) : normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist))), // !blocksOnHolds makes no sense here
                                     lastAngle = value,
                                     event.type == "mineHold" && (
                                         holdDir = (randomValue(0, 2) - 0.5) * 2,
@@ -510,12 +508,58 @@ const toolSelect = document.querySelector("#selectTool"),
                             event.angle = value,
                                 lastEvent = event;
                         }); break;
+                    case "ready":
+                        const prevEvent = angles.length == 1 && (angles[angles.length - 1].time >= time - constants.closeTime && angles[angles.length - 1]),
+                            preverEvent = prevEvent && angles.length == 2 ? angles[angles.length - 2].time >= prevEvent.time - constants.closeTime && angles[angles.length - 2] : undefined,
+                            additionalRotations = randomValue(constants.minHoldDir, constants.maxHoldDir - constants.minHoldDir) * randomValue(-0.5, 2) * 2 * 360;
+                        constants.chart.filter(event => event.time == time || (["hold"].includes(event.type) && event.time + event.duration == time)).forEach(event => {
+                            if (lastEvent) {
+                                switch (true) { // Holds ignored, im not insane enough to code that
+                                    case prevEvent: // Blocks too close
+                                        value = lastAngle + closeDir * (preverEvent ? lastDir : randomValue(-0.5, 2) * 2) * (constants.closeBehavior == "relative" ? (event.time - prevEvent.time) / constants.closeTime : 1); break;
+                                    default:
+                                        if (angles.length >= 1 && angles[angles.length - 1].time == time) {
+                                            value = angles[angles.length - 1].angle;
+                                        } else {
+                                            value = normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist)),
+                                                angles.push({ time: time, angle: value });
+                                        } break;
+                                }
+                            } else {
+                                lastAngle = value,
+                                    angles.push({ time: time, angle: value });
+                            }
+                            if (event.time == time) {
+                                event.angle = normalizeAngle(event.angle - 90 + value);
+                            } else {
+                                event.angle2 = normalizeAngle(event.angle2 - 90 + value - event.angle),
+                                    event.angle2 = event.angle + event.angle2 - (event.angle2 > 180 ? 360 : 0),
+                                    event.angle2 += constants.blocksOnHolds ? additionalRotations : randomValue(constants.minHoldDir, constants.maxHoldDir - constants.minHoldDir) * randomValue(-0.5, 2) * 2 * 360;
+                            }
+                            lastEvent = event;
+                        }),
+                            lastDir = ((compareAnglesLR(lastAngle, value) == "left") - 0.5) * 2, lastAngle = value; break;
                 }
             }
+            if (constants.type == "ready" && constants.holdReorder) {
+                let order, order2;
+                angles.forEach(angle => {
+                    order = constants.chart.filter(event => event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration) == angle.time && event.type == "hold").sort((a, b) => normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? a.angle : a.angle2) - angle.angle) - normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? b.angle : b.angle2) - angle.angle));
+                    console.log(order.map(event => (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) + " " + normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) - angle.angle)).join("\n") + "\n" + angle.angle, angle.time),
+                        constants.chart.filter(event => event.type == "hold" && event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration)
+                            == angle.time).forEach(event => {
+                                order2 = order,
+                                    event.angle2 > event.angle && (order2.reverse()),
+                                    ["closestStart", "closestEnd"].includes(constants.holdReorder) && (order2.reverse()),
+                                    event.order = order2.indexOf(event);
+                                console.log(event.order, event.angle2 > event.angle, event.angle2, event.angle)
+                            });
+                })
+            }
+            events = constants.chart
         },
         after: () => { },
-        functions: [],
-        dontUseEvents: true
+        functions: []
     }, {
         name: "decoChecker",
         desc: "Returns the amount of unhidden decos in your level",
@@ -574,7 +618,7 @@ const toolSelect = document.querySelector("#selectTool"),
         before: () => {
             constants.startEvents = [], lastDir = randomValue(-0.5, 2) * 2, lastAngle = 0;
             let angleDiffDefault = (42 + 9) * constants.turnSpeed, paddleSizeDefault = (42 + 9) * (constants.defaultPaddleSize || 70),
-                radius = constants.startRadius || 51,
+                radius = constants.startRadius || 50,
                 blockTimeDiff = 1 / constants.blocksPerBeat, calculationSegments = (constants.lineSegmentsPerBlock || 1), lineSegmentTimeDiff = blockTimeDiff / (constants.lineSegmentsPerBlock || 1),
                 x = constants.startX - 300, y = constants.startY - 180, angleDiff = angleDiffDefault / radius, lastX = -angleDiffDefault / radius * blockTimeDiff * lastDir + x, lastY = -radius + y, circles = [], lines = [];
             constants.startEvents.push(
@@ -723,9 +767,10 @@ const toolSelect = document.querySelector("#selectTool"),
                 { name: "sprite", desc: "", type: "string", required: false, newRow: true },
                 { name: "ox", desc: "", type: "number", required: false },
                 { name: "oy", desc: "", type: "number", required: false },
-                { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ', '\nExamples: '0, 1, 2, 3', '-1', '0, 0, 0, 1'", type: "string", required: false }
+                { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ', '\nExamples: '0, 1, 2, 3', '-1', '0, 0, 0, 1'", type: "string", required: false },
+                { name: "parent", desc: "", type: "string", required: false, newRow: true }
             ],
-            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, movementEase, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleInEase, scaleIn, scaleOutType, scaleOutEase, scaleOut, sprite, ox, oy, colors) => {
+            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, movementEase, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleInEase, scaleIn, scaleOutType, scaleOutEase, scaleOut, sprite, ox, oy, colors, parent) => {
                 start === undefined && (start = 0),
                     duration2 === undefined && (duration2 = duration1),
                     rotateBehavior === undefined && (rotateBehavior = "random"),
@@ -796,7 +841,7 @@ const toolSelect = document.querySelector("#selectTool"),
                     }
                     events.push({
                         time: i, angle: 0, type: "deco", order: 0, hide: true,
-                        id: particlePrefix + "_" + freeIndex + "_normal",
+                        id: particlePrefix + "_" + freeIndex + "_normal", parentid: parent,
                         x: x, y: y, r: 0
                     }, {
                         time: i, angle: 0, type: "deco", order: 1,
@@ -1127,7 +1172,8 @@ function convertInput(input, type, element) {
 
 
 // Init
-resultDiv.innerText = "Hover over some tool, constant, event and parameter names to get tooltips",
+resultDiv.innerText = "Hover over some tool, constant, event and parameter names to get tooltips\nThis is version " + version,
+    resultDiv2.innerText = "The console may give you additional information when running",
     tools.forEach(tool => {
         const option = document.createElement("option");
         option.innerText = beautifyText(tool.name),
