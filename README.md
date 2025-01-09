@@ -3,6 +3,9 @@ by Pentatrate
 
 for Beatblock
 
+PING ME FOR QUESTIONS/SUGGESTIONS/BUGS, I SHOULD ANSWER...
+eventually?
+
 ## Tools in Penta's Beattools
 1. Beatblock Text Generator using a spritesheet (Use K4kadu's unless you really need to use this one)
 2. Beatblock Untagger (single tag/all tags)
@@ -10,7 +13,7 @@ for Beatblock
 4. Beatblock Deco Checker (and whether they get hidden or not)
 5. Beatblock Circle Stream Generator
 6. Beatblock Particle Generator
-7. Beatblock Fake Block Generator (includes Sides)
+7. [Beatblock Fake Block Generator](#beatblock-fake-block-generator) (includes Sides)
 
 ## How to use (Penta's Beattools)
 Will get updated to include other tools.
@@ -30,7 +33,12 @@ Will get updated to include other tools.
 
 Jumpbeat Instructions:
 
-![Jumpbeat Instructions](https://github.com/user-attachments/assets/cbad4d15-a595-423d-97cd-a335dbfb1514)
+![Jumpbeat Instructions failed to load](https://github.com/user-attachments/assets/cbad4d15-a595-423d-97cd-a335dbfb1514)
+
+## Beatblock Fake Block Generator
+
+![Randomizer Instructions failed to load](https://github.com/user-attachments/assets/8c5eb0c5-2415-47d5-9e79-8f244559eada)
+
 
 ### How to use (Separate Tools/textGenerator.js)
 Included in Penta's Beattools. You shouldn't use the separate version (this).
