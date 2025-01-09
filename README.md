@@ -35,6 +35,8 @@ Jumpbeat Instructions:
 
 ![Jumpbeat Instructions failed to load](https://github.com/user-attachments/assets/cbad4d15-a595-423d-97cd-a335dbfb1514)
 
+![Min/Max Angle diagram failed to load](https://github.com/user-attachments/assets/f11680ac-a757-4b32-a3ed-77428661f593)
+
 ## Beatblock Fake Block Generator
 
 ![Randomizer Instructions failed to load](https://github.com/user-attachments/assets/8c5eb0c5-2415-47d5-9e79-8f244559eada)
