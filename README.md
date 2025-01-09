@@ -7,7 +7,7 @@ PING ME FOR QUESTIONS/SUGGESTIONS/BUGS, I SHOULD ANSWER...
 eventually?
 
 ## Tools in Penta's Beattools
-1. Beatblock Text Generator using a spritesheet (Use K4kadu's unless you really need to use this one)
+1. Beatblock Text Generator using a spritesheet (Use [K4kadu's](https://github.com/K4kadu/Beatblock-Utilities) unless you really need to use this one)
 2. Beatblock Untagger (single tag/all tags)
 3. [Beatblock Event Randomizer](#beatblock-event-randomizer)
 4. Beatblock Deco Checker (and whether they get hidden or not)
