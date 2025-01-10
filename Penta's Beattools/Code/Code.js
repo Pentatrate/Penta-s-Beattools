@@ -423,7 +423,8 @@ const version = "1.2",
             { name: "closeTime", desc: "How close notes should be to be considered close\nDefault: 0", type: "number", required: false, newRow: true },
             { name: "closeDir", desc: "The angle close notes are moved\nDefault: 0", type: "number", required: false },
             { name: "closeBehavior", desc: "How the angle of close notes should behave to their time difference\nDefault: Relative", type: "select", values: ["absolute", "relative"], required: false },
-            { name: "holdReorder", desc: "For Type set to Ready: the hold thats set to the highest order", type: "select", values: ["furthestStart", "closestStart", "furthestEnd", "closestEnd"], required: false, newRow: true }
+            { name: "holdReorder", desc: "For Type set to Ready: the hold thats set to the highest order", type: "select", values: ["furthestStart", "closestStart", "furthestEnd", "closestEnd"], required: false, newRow: true },
+            { name: "forceDefaultHolds", desc: "For Type set to Ready: forces holds to have default behavior instead of jumping. Min/Max Hold Dir will behave like when Type not set to Ready", type: "boolean", required: false }
         ],
         before: () => {
             constants.minHoldDir === undefined && (constants.minHoldDir = 0),
@@ -438,7 +439,7 @@ const version = "1.2",
             }
             // Declare Vars and require Chart Data
             let value = constants.startAngle === undefined ? newAngle(constants.snap) : constants.startAngle,
-                lastEvent, time, ovlpEvent, holdDir, angles = [];
+                lastEvent, time, ovlpEvent, holdDir, angles = [], forcedAngles = [];
             time = constants.minTime !== undefined ? constants.minTime - 0.001 : -(10 ** 10),
                 constants.maxTime === undefined && (constants.maxTime = 10 ** 10),
                 constants.chart.sort((a, b) => a.time - b.time);
@@ -512,7 +513,7 @@ const version = "1.2",
                         const prevEvent = angles.length == 1 && (angles[angles.length - 1].time >= time - constants.closeTime && angles[angles.length - 1]),
                             preverEvent = prevEvent && angles.length == 2 ? angles[angles.length - 2].time >= prevEvent.time - constants.closeTime && angles[angles.length - 2] : undefined,
                             additionalRotations = randomValue(constants.minHoldDir, constants.maxHoldDir - constants.minHoldDir) * randomValue(-0.5, 2) * 2 * 360;
-                        constants.chart.filter(event => event.time == time || (["hold"].includes(event.type) && event.time + event.duration == time)).forEach(event => {
+                        constants.chart.filter(event => event.type != "extraTap" && (event.time == time || (["hold", "mineHold"].includes(event.type) && event.time + event.duration == time))).forEach(event => {
                             if (lastEvent) {
                                 switch (true) { // Holds ignored, im not insane enough to code that
                                     case prevEvent: // Blocks too close
@@ -521,7 +522,7 @@ const version = "1.2",
                                         if (angles.length >= 1 && angles[angles.length - 1].time == time) {
                                             value = angles[angles.length - 1].angle;
                                         } else {
-                                            value = normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist)),
+                                            value = forcedAngles.reduce((prev, angle) => prev || angle.time == time, false) ? forcedAngles.reduce((prev, angle) => prev || (angle.time == time && angle), false).angle : normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist)),
                                                 angles.push({ time: time, angle: value });
                                         } break;
                                 }
@@ -531,6 +532,9 @@ const version = "1.2",
                             }
                             if (event.time == time) {
                                 event.angle = normalizeAngle(event.angle - 90 + value);
+                                if (constants.forceDefaultHolds && ["hold", "mineHold"].includes(event.type)) {
+                                    !forcedAngles.reduce((prev, angle) => prev || angle.time == time, false) && (forcedAngles.push({ time: time + event.duration, angle: value + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * (randomValue(0, 2) - 0.5) * 2 }));
+                                }
                             } else {
                                 event.angle2 = normalizeAngle(event.angle2 - 90 + value - event.angle),
                                     event.angle2 = event.angle + event.angle2 - (event.angle2 > 180 ? 360 : 0),
@@ -538,22 +542,22 @@ const version = "1.2",
                             }
                             lastEvent = event;
                         }),
-                            lastDir = ((compareAnglesLR(lastAngle, value) == "left") - 0.5) * 2, lastAngle = value; break;
+                            lastDir = ((compareAnglesLR(lastAngle, value) == "left") - 0.5) * 2,
+                            lastAngle = value; break;
                 }
             }
             if (constants.type == "ready" && constants.holdReorder) {
                 let order, order2;
                 angles.forEach(angle => {
-                    order = constants.chart.filter(event => event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration) == angle.time && event.type == "hold").sort((a, b) => normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? a.angle : a.angle2) - angle.angle) - normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? b.angle : b.angle2) - angle.angle));
+                    order = constants.chart.filter(event => event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration) == angle.time && ["hold", "mineHold"].includes(event.type)).sort((a, b) => normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? a.angle : a.angle2) - angle.angle) - normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? b.angle : b.angle2) - angle.angle));
                     console.log(order.map(event => (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) + " " + normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) - angle.angle)).join("\n") + "\n" + angle.angle, angle.time),
-                        constants.chart.filter(event => event.type == "hold" && event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration)
-                            == angle.time).forEach(event => {
-                                order2 = order,
-                                    event.angle2 > event.angle && (order2.reverse()),
-                                    ["closestStart", "closestEnd"].includes(constants.holdReorder) && (order2.reverse()),
-                                    event.order = order2.indexOf(event);
-                                console.log(event.order, event.angle2 > event.angle, event.angle2, event.angle)
-                            });
+                        constants.chart.filter(event => ["hold", "mineHold"].includes(event.type) && event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration) == angle.time).forEach(event => {
+                            order2 = order,
+                                event.angle2 > event.angle && (order2.reverse()),
+                                ["closestStart", "closestEnd"].includes(constants.holdReorder) && (order2.reverse()),
+                                event.order = order2.indexOf(event);
+                            console.log(event.order, event.angle2 > event.angle, event.angle2, event.angle)
+                        });
                 })
             }
             events = constants.chart
@@ -1285,7 +1289,23 @@ function cos(d) { return Math.cos(d / 180 * Math.PI); }
 function sin(d) { return Math.sin(d / 180 * Math.PI); }
 
 function randomValue(min, range) { return Math.floor(Math.random() * (range)) + min; }
-function newAngle(snap, minDist, maxDist) { let angle; do { angle = randomValue(0, snap) * 360 / snap; } while ((minDist !== undefined && (normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist))); return angle; }
+function newAngle(snap, minDist, maxDist) {
+    let angle;
+    do {
+        angle = randomValue(0, snap) * 360 / snap;
+    } while (
+        (
+            minDist !== undefined && (
+                normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist
+            )
+        ) || (
+            maxDist !== undefined && (
+                normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist
+            )
+        )
+    ); return angle;
+}
+
 function randomAngle(snap, minAngle, maxAngle) { return randomValue(minAngle / 360 * snap, (maxAngle - minAngle) / 360 * snap) * 360 / snap; }
 function average(...args) { return args.reduce((prev, current) => prev + current, 0) / args.length }
 function randomFromArray(array) { return array[randomValue(0, array.length)]; }
