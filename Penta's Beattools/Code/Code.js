@@ -449,8 +449,9 @@ const version = "1.2",
                     case "close": return constants.sideDir * dir * (event.type == "side" ? 1 : -1);
                 }
             };
-            while (constants.chart.filter(event => event.time > time && event.time <= constants.maxTime).length > 0) {
-                time = constants.chart.filter(event => event.time > time)[0].time;
+            while (constants.chart.filter(event => (event.time > time && event.time <= constants.maxTime) || (["hold", "mineHold"].includes(event.type) && event.time + event.duration > time && event.time + event.duration <= constants.maxTime)).length > 0) {
+                time = Math.min(...[constants.chart.filter(event => event.time > time)[0]?.time, constants.chart.filter(event => ["hold", "mineHold"].includes(event.type) && event.time + event.duration > time).map(event => event.time + event.duration)[0]].filter(time => time !== undefined));
+                console.log(time)
                 switch (constants.type) {
                     case "blocks":
                         constants.chart.filter(event => event.time == time && ["block", "inverse", "hold"].includes(event.type)).forEach(event => {
