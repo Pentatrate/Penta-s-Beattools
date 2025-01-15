@@ -1,4 +1,4 @@
-const version = "1.2",
+const version = "1.3",
     toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
     toolLabel = document.querySelector("#toolName"),
@@ -131,7 +131,7 @@ const version = "1.2",
                 { name: "effectCanvas", desc: "", type: "boolean", required: false },
                 { name: "effectCanvasRaw", desc: "", type: "boolean", required: false },
                 { name: "duration", desc: "", type: "number", required: false, newRow: true },
-                { name: "ease", desc: "", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false }
+                { name: "ease", desc: "", type: "ease", required: false }
             ],
             function: (time, order, id, parentid, rotationInfluence, orbit, x, y, r, sx, sy, kx, ky, drawLayer, drawOrder, recolor, outline, effectCanvas, effectCanvasRaw, duration, ease) => {
                 const textObj = texts[getIndexOfText(id)];
@@ -400,7 +400,7 @@ const version = "1.2",
                 }
             },
             hidden: true,
-            constOverride: true
+            constOverride: true //TF wjat does this do lol
         }],
         dontUseEvents: true
     }, {
@@ -606,7 +606,7 @@ const version = "1.2",
             { name: "speed", desc: "Parameter for the fake blocks", type: "number", required: false },
             { name: "scrollSpeed", desc: "Parameter for the fake blocks", type: "number", required: false },
             { name: "entryType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
-            { name: "entryEase", desc: "Easing for entry animation of the fake block", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
+            { name: "entryEase", desc: "Easing for entry animation of the fake block", type: "ease", required: false },
             { name: "entryTime", desc: "How long the entry animation of the fake block takes", type: "number", required: false },
             { name: "defaultPaddleSize", desc: "How large the paddle should be under default conditions\nWill change relative to the circle radius", type: "number", required: false, newRow: true },
             { name: "turnSpeed", desc: "How fast you should turn under default conditions\nWill change relative to the circle radius", type: "number", required: true },
@@ -736,81 +736,81 @@ const version = "1.2",
             name: "particleEmitter",
             desc: "Emits particles",
             params: [
-                { name: "start", desc: "", type: "number", required: false, newRow: true },
-                { name: "end", desc: "", type: "number", required: true },
+                { name: "emitterStart", desc: "", type: "number", required: false, newRow: true },
+                { name: "emitterEnd", desc: "", type: "number", required: true },
                 { name: "particlesPerBeat", desc: "", type: "number", required: true },
-                { name: "duration1", desc: "The range of how long particles stay", type: "number", required: true, newRow: true },
-                { name: "duration2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
-                { name: "shape", desc: "What shape the particles will generate in\nAll options other than Point will require four parameters\nPoint: Requires X1 and X2\n-Points: Creates a shape between (X1 | Y1) and (X2 | Y2)\n-Size: Creates a shape with middle (X1 | Y1) and width X2 / height Y2\nLine Dir: Creates a line from (X1 | Y1) in the direction X2 with length Y2", type: "select", values: ["point", "linePoints", "lineDir", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"], required: true, newRow: true },
+                { name: "particleDuration1", desc: "The range of how long particles stay", type: "number", required: true, newRow: true },
+                { name: "particleDuration2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "spawnShape", desc: "What shape the particles will generate in\nAll options other than Point will require four parameters\nPoint: Requires X1 and X2\n-Points: Creates a shape between (X1 | Y1) and (X2 | Y2)\n-Size: Creates a shape with middle (X1 | Y1) and width X2 / height Y2\nLine Dir: Creates a line from (X1 | Y1) in the direction X2 with length Y2", type: "select", values: ["point", "linePoints", "lineDir", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"], required: true, newRow: true },
                 { name: "x1", desc: "", type: "number", required: true },
                 { name: "y1", desc: "", type: "number", required: true },
                 { name: "x2", desc: "", type: "number", required: false },
                 { name: "y2", desc: "", type: "number", required: false },
-                { name: "rotateBehavior", desc: "Static: All particles use Rotation1\nRandom: Particles are between Rotation1 and 2\nFollow: DOESNT WORK WITH GRAVITY! Particles rotate in the direction they're moving. Doesnt require parameters", type: "select", values: ["static", "random", "follow"], required: false, newRow: true },
+                { name: "spriteRotationBehavior", desc: "Static: All particles use Rotation1\nRandom: Particles are between Rotation1 and 2\nFollow: DOESNT WORK WITH GRAVITY! Particles rotate in the direction they're moving. Doesnt require parameters", type: "select", values: ["static", "random", "follow"], required: false, newRow: true },
                 { name: "rotation1", desc: "", type: "number", required: false },
                 { name: "rotation2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "spin1", desc: "Particle rotation per beat", type: "number", required: false },
                 { name: "spin2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
-                { name: "dir1", desc: "Direction of particle movement", type: "number", required: false, newRow: true },
-                { name: "dir2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "movementAngle1", desc: "Direction of particle movement", type: "number", required: false, newRow: true },
+                { name: "movementAngle2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "velocity1", desc: "Particle speed", type: "number", required: false },
                 { name: "velocity2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
-                { name: "movementEase", desc: "Ease option to fake ac/deceleration", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
-                { name: "gravityDir", desc: "Direction of gravity", type: "number", required: false, newRow: true },
-                { name: "gravity", desc: "Strength of gravity", type: "number", required: false },
+                { name: "movementEase", desc: "Ease option to fake ac/deceleration", type: "ease", required: false },
+                { name: "accelerationAngle", desc: "Direction of acceleration", type: "number", required: false, newRow: true },
+                { name: "accelerationFactor", desc: "Strength of acceleration", type: "number", required: false },
                 { name: "scaleBehavior", desc: "Whether smaller particles will stay smaller (Relative) or can grow to be bigger (Random)\nNoticable with different start- and endscale ranges", type: "select", values: ["random", "relative"], required: true, newRow: true },
                 { name: "scaleStart1", desc: "", type: "number", required: true },
                 { name: "scaleStart2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "scaleEnd1", desc: "", type: "number", required: false },
                 { name: "scaleEnd2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
-                { name: "scaleInType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
-                { name: "scaleInEase", desc: "Ease of the entry animation", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
-                { name: "scaleIn", desc: "Duration of the entry animation", type: "number", required: false },
-                { name: "scaleOutType", desc: "Determines the axis for the exit animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false },
-                { name: "scaleOutEase", desc: "Ease of the exit animation", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
-                { name: "scaleOut", desc: "Duration of the exit animation", type: "number", required: false },
+                { name: "entryAxis", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
+                { name: "entryEase", desc: "Ease of the entry animation", type: "ease", required: false },
+                { name: "entryDuration", desc: "Duration of the entry animation", type: "number", required: false },
+                { name: "exitAxis", desc: "Determines the axis for the exit animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false },
+                { name: "exitEase", desc: "Ease of the exit animation", type: "ease", required: false },
+                { name: "exitDuration", desc: "Duration of the exit animation", type: "number", required: false },
                 { name: "sprite", desc: "", type: "string", required: false, newRow: true },
                 { name: "ox", desc: "", type: "number", required: false },
                 { name: "oy", desc: "", type: "number", required: false },
-                { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ', '\nExamples: '0, 1, 2, 3', '-1', '0, 0, 0, 1'", type: "string", required: false },
+                { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ','\nExamples: '0,1,2,3', '-1', '0,0,0,1'", type: "string", required: false },
                 { name: "parent", desc: "", type: "string", required: false, newRow: true }
             ],
-            function: (start, end, particlesPerBeat, duration1, duration2, shape, x1, y1, x2, y2, rotateBehavior, rotation1, rotation2, spin1, spin2, dir1, dir2, velocity1, velocity2, movementEase, gravityDir, gravity, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, scaleInType, scaleInEase, scaleIn, scaleOutType, scaleOutEase, scaleOut, sprite, ox, oy, colors, parent) => {
-                start === undefined && (start = 0),
-                    duration2 === undefined && (duration2 = duration1),
-                    rotateBehavior === undefined && (rotateBehavior = "random"),
+            function: (emitterStart, emitterEnd, particlesPerBeat, particleDuration1, particleDuration2, spawnShape, x1, y1, x2, y2, spriteRotationBehavior, rotation1, rotation2, spin1, spin2, movementAngle1, movementAngle2, velocity1, velocity2, movementEase, accelerationAngle, accelerationFactor, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, entryAxis, entryEase, entryDuration, exitAxis, exitEase, exitDuration, sprite, ox, oy, colors, parent) => {
+                emitterStart === undefined && (emitterStart = 0),
+                    particleDuration2 === undefined && (particleDuration2 = particleDuration1),
+                    spriteRotationBehavior === undefined && (spriteRotationBehavior = "random"),
                     rotation1 === undefined && (rotation1 = 0),
                     rotation2 === undefined && (rotation2 = rotation1),
                     spin1 === undefined && (spin1 = 0),
                     spin2 === undefined && (spin2 = spin1),
-                    dir1 === undefined && (dir1 = 0),
-                    dir2 === undefined && (dir2 = dir1),
+                    movementAngle1 === undefined && (movementAngle1 = 0),
+                    movementAngle2 === undefined && (movementAngle2 = movementAngle1),
                     velocity1 === undefined && (velocity1 = 0),
                     velocity2 === undefined && (velocity2 = velocity1),
-                    gravityDir === undefined && (gravityDir = 180),
+                    accelerationAngle === undefined && (accelerationAngle = 180),
                     scaleStart2 === undefined && (scaleStart2 = scaleStart1),
                     scaleEnd1 === undefined && (scaleEnd1 = scaleStart1),
                     scaleEnd2 === undefined && (scaleEnd2 = scaleEnd1),
-                    scaleIn === undefined && (scaleIn = 0),
-                    scaleOut === undefined && (scaleOut = 0),
-                    colors = (colors === undefined ? [-1] : colors.split(", ").map(number => Number(number)));
+                    entryDuration === undefined && (entryDuration = 0),
+                    exitDuration === undefined && (exitDuration = 0),
+                    colors = (colors === undefined ? [] : colors.split(",").map(number => Number(number.trim())).filter(number => !isNaN(number) && typeof number == "number")), colors.length == 0 && (colors = [-1]);
                 let duration, x, y, spin, dir, v, r, sStart, sEnd, color, random;
-                for (i = start; i <= end; i += 1 / particlesPerBeat) {
+                for (i = emitterStart; i <= emitterEnd; i += 1 / particlesPerBeat) {
                     // duration, dir, v, s, color
-                    duration = randomValue(duration1, duration2 - duration1),
+                    duration = randomValue(particleDuration1, particleDuration2 - particleDuration1),
                         spin = randomValue(spin1, spin2 - spin1),
-                        dir = randomValue(dir1, dir2 - dir1),
+                        dir = randomValue(movementAngle1, movementAngle2 - movementAngle1),
                         v = randomValue(velocity1, velocity2 - velocity1),
                         sStart = randomValue(scaleStart1, scaleStart2 - scaleStart1),
                         color = randomFromArray(colors),
                         random = Math.random();
                     // startIndex
-                    const start = i, end = i + (gravity ? duration2 : duration);
+                    const start = i, end = i + (accelerationFactor ? particleDuration2 : duration);
                     let freeIndex = particles.indexOf(particles.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
                     freeIndex == -1 && (freeIndex = particles.length, particles.push([])),
                         startOrder = 0, endOrder = 0,
                         particles[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder });
-                    switch (shape) { // x, y
+                    switch (spawnShape) { // x, y
                         case "point": x = x1, y = y1; break;
                         case "linePoints":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
@@ -819,7 +819,7 @@ const version = "1.2",
                             break;
                         case "lineDir":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            x = x1 + cos(90 - x2) * y2 * random, y = y1 + sin(90 - x2) * y2 * random; break;
+                            x = x1 + cos(-90 + x2) * y2 * random, y = y1 + sin(-90 + x2) * y2 * random; break;
                         case "rectanglePoints":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
                             x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
@@ -834,7 +834,7 @@ const version = "1.2",
                             do { x = x1 - x2 / 2 + x2 * Math.random(), y = y1 - y2 / 2 + y2 * Math.random(); } while (getDist((x - x1) / x2, (y - y1) / y2) > 0.5); break;
                         default: abort = true; return;
                     }
-                    switch (rotateBehavior) { // r
+                    switch (spriteRotationBehavior) { // r
                         case "static": r = rotation1; break;
                         case "random": r = randomValue(rotation1, rotation2 - rotation1); break;
                         case "follow": r = dir; break; // NOT YET
@@ -851,60 +851,59 @@ const version = "1.2",
                     }, {
                         time: i, angle: 0, type: "deco", order: 1,
                         id: particlePrefix + "_" + freeIndex + "_normal",
-                        x: x + cos(-90 - dir) * v * duration, y: y + sin(-90 - dir) * v * duration,
+                        x: x + cos(-90 + dir) * v * duration, y: y + sin(-90 + dir) * v * duration,
                         duration: duration, ease: movementEase
                     }, {
                         time: i, angle: 0, type: "deco", order: 2, hide: false,
-                        id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (gravity ? "_gravity" : "_normal"),
+                        id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (accelerationFactor ? "_gravity" : "_normal"),
                         sprite: sprite, recolor: color, ox: ox, oy: oy,
-                        x: 0, y: 0, r: r, sx: (scaleIn && scaleInType != "sy" ? 0 : sStart), sy: (scaleIn && scaleInType != "sx" ? 0 : sStart)
+                        x: 0, y: 0, r: r, sx: (entryDuration && entryAxis != "sy" ? 0 : sStart), sy: (entryDuration && entryAxis != "sx" ? 0 : sStart)
                     }, {
                         time: i, angle: 0, type: "deco", order: 3,
                         id: particlePrefix + "_" + freeIndex + "_sprite",
-                        r: r + spin * duration, sx: (scaleIn || scaleOut) ? undefined : sEnd, sy: (scaleIn || scaleOut) ? undefined : sEnd,
+                        r: r + spin * duration, sx: (entryDuration || exitDuration) ? undefined : sEnd, sy: (entryDuration || exitDuration) ? undefined : sEnd,
                         duration: duration
                     }, {
                         time: i + duration, angle: 0, type: "deco",
                         id: particlePrefix + "_" + freeIndex + "_sprite",
                         hide: true
                     }),
-                        (scaleIn || scaleOut) && (
+                        (entryDuration || exitDuration) && (
                             events.push({
-                                time: i + scaleIn, angle: 0, type: "deco",
+                                time: i + entryDuration, angle: 0, type: "deco",
                                 id: particlePrefix + "_" + freeIndex + "_sprite",
                                 sx: sEnd, sy: sEnd,
-                                duration: duration - scaleIn - scaleOut
+                                duration: duration - entryDuration - exitDuration
                             })
                         ),
-                        scaleIn && (
+                        entryDuration && (
                             events.push({
                                 time: i, angle: 0, type: "deco", order: 3,
                                 id: particlePrefix + "_" + freeIndex + "_sprite",
                                 sx: sStart, sy: sStart,
-                                duration: scaleIn, ease: scaleInEase
+                                duration: entryDuration, ease: entryEase
                             })
                         ),
-                        scaleOut && (
+                        exitDuration && (
                             events.push({
-                                time: i + duration - scaleOut, angle: 0, type: "deco",
+                                time: i + duration - exitDuration, angle: 0, type: "deco",
                                 id: particlePrefix + "_" + freeIndex + "_sprite",
-                                sx: scaleOutType != "sy" ? 0 : sEnd, sy: scaleOutType != "sx" ? 0 : sEnd,
-                                duration: scaleOut, ease: scaleOutEase
+                                sx: exitAxis != "sy" ? 0 : sEnd, sy: exitAxis != "sx" ? 0 : sEnd,
+                                duration: exitDuration, ease: exitEase
                             })
                         ),
-                        gravity && (
+                        accelerationFactor && (
                             events.push({
                                 time: i, angle: 0, type: "deco", order: 1, hide: false,
                                 id: particlePrefix + "_" + freeIndex + "_gravity", parentid: particlePrefix + "_" + freeIndex + "_normal",
-                                x: 0, y: 0, sx: 0, r: 0,
-                                duration: duration2
+                                x: 0, y: 0, sx: 0, r: 0
                             }, {
                                 time: i, angle: 0, type: "deco", order: 2,
                                 id: particlePrefix + "_" + freeIndex + "_gravity",
-                                x: cos(-90 - gravityDir) * gravity * (duration2 ** 2), y: sin(-90 - gravityDir) * gravity * (duration2 ** 2),
-                                duration: duration2, ease: "inQuad"
+                                x: cos(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2), y: sin(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2),
+                                duration: particleDuration2, ease: "inQuad"
                             }, {
-                                time: i + duration2, angle: 0, type: "deco",
+                                time: i + particleDuration2, angle: 0, type: "deco",
                                 id: particlePrefix + "_" + freeIndex + "_gravity",
                                 hide: true
                             })
@@ -934,7 +933,7 @@ const version = "1.2",
                 { name: "onlyInPart", desc: "True: Only the notes within the time will get fully faked\nFalse: Notes will only get faked within the part and will spontaniously appear/dissappear at the start/end", type: "boolean", required: false, newRow: true },
                 { name: "radius", desc: "The distance to the player when the blocks hit\nDefault: 51", type: "number", required: false, newRow: true },
                 { name: "appearType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
-                { name: "appearEase", desc: "Ease of the entry animation", type: "select", values: ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"], required: false },
+                { name: "appearEase", desc: "Ease of the entry animation", type: "ease", required: false },
                 { name: "appearLength", desc: "Duration of the entry animation", type: "number", required: false }
             ],
             function: (chart, start, end, parent, speed, scrollSpeed, spawnOffset, randomDirections, fakes, onlyInPart, radius, appearType, appearEase, appearLength) => {
@@ -962,10 +961,123 @@ const version = "1.2",
                 });
             }
         }]
-    }];
+    }/*, {
+        name: "bpmChanger (UNFINISHED, does nothing)",
+        desc: "Returns the amount of unhidden decos in your level",
+        constants: [
+            { name: "level", desc: "The level file that your variant uses", type: "json", required: true, newRow: true }
+        ],
+        before: () => {
+        },
+        after: () => { },
+        functions: [],
+        dontUseEvents: true
+    }*/],
+    eases = ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"];
 let openTool = tools[0],
     constants = {}, abort;
 //
+
+
+// General utility
+let events = [], lastAngle = 0, lastDir = 1;
+function normalizeAngle(d) { return ((d % 360) + 360) % 360; }
+function compareAnglesLR(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (180 > tempDiff && tempDiff >= 0 ? "left" : "right"); }
+function compareAnglesFB(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (90 > tempDiff || tempDiff >= 270 ? "front" : "back"); }
+function getAngle(x, y) { return Math.atan2(y, x) / Math.PI * 180; }
+function getDist(x, y) { return Math.hypot(x, y); }
+function cos(d) { return Math.cos(d * (Math.PI / 180)); }
+function sin(d) { return Math.sin(d * (Math.PI / 180)); }
+
+function randomValue(min, range) { return Math.floor(Math.random() * (range)) + min; }
+function newAngle(snap, minDist, maxDist) { let angle; do { angle = randomValue(0, snap) * 360 / snap; } while ((minDist !== undefined && (normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist))); return angle; }
+
+function randomAngle(snap, minAngle, maxAngle) { return randomValue(minAngle / 360 * snap, (maxAngle - minAngle) / 360 * snap) * 360 / snap; }
+function average(...args) { return args.reduce((prev, current) => prev + current, 0) / args.length }
+function randomFromArray(array) { return array[randomValue(0, array.length)]; }
+
+// Text Generator utility
+const availiableLetters = [{ letter: " ", length: 4 }, { letter: "a", length: 8 }, { letter: "b", length: 8 }, { letter: "c", length: 7 }, { letter: "d", length: 8 }, { letter: "e", length: 8 }, { letter: "f", length: 3 }, { letter: "g", length: 8 }, { letter: "h", length: 8 }, { letter: "i", length: 2 }, { letter: "j", length: 2 }, { letter: "k", length: 8 }, { letter: "l", length: 2 }, { letter: "m", length: 11 }, { letter: "n", length: 8 }, { letter: "o", length: 8 }, { letter: "p", length: 8 }, { letter: "q", length: 8 }, { letter: "r", length: 5 }, { letter: "s", length: 7 }, { letter: "t", length: 3 }, { letter: "u", length: 8 }, { letter: "v", length: 8 }, { letter: "w", length: 11 }, { letter: "x", length: 7 }, { letter: "y", length: 8 }, { letter: "z", length: 8 }, { letter: "#", length: 9 }, { letter: "A", length: 8 }, { letter: "B", length: 8 }, { letter: "C", length: 8 }, { letter: "D", length: 8 }, { letter: "E", length: 7 }, { letter: "F", length: 7 }, { letter: "G", length: 9 }, { letter: "H", length: 8 }, { letter: "I", length: 1 }, { letter: "J", length: 3 }, { letter: "K", length: 8 }, { letter: "L", length: 4 }, { letter: "M", length: 11 }, { letter: "N", length: 8 }, { letter: "O", length: 9 }, { letter: "P", length: 8 }, { letter: "Q", length: 9 }, { letter: "R", length: 8 }, { letter: "S", length: 8 }, { letter: "T", length: 7 }, { letter: "U", length: 8 }, { letter: "V", length: 8 }, { letter: "W", length: 11 }, { letter: "X", length: 7 }, { letter: "Y", length: 8 }, { letter: "Z", length: 7 }, { letter: "0", length: 8 }, { letter: "1", length: 1 }, { letter: "2", length: 7 }, { letter: "3", length: 8 }, { letter: "4", length: 8 }, { letter: "5", length: 7 }, { letter: "6", length: 8 }, { letter: "7", length: 6 }, { letter: "8", length: 8 }, { letter: "9", length: 8 }, { letter: "+", length: 5 }, { letter: "-", length: 4 }, { letter: "*", length: 4 }, { letter: "/", length: 3 }, { letter: "\\", length: 3 }, { letter: "%", length: 9 }, { letter: '"', length: 3 }, { letter: "'", length: 1 }, { letter: "&", length: 9 }, { letter: "~", length: 6 }, { letter: ".", length: 1 }, { letter: ",", length: 2 }, { letter: ":", length: 1 }, { letter: ";", length: 2 }, { letter: "_", length: 8 }, { letter: "<", length: 6 }, { letter: ">", length: 6 }, { letter: "|", length: 1 }, { letter: "´", length: 2 }, { letter: "`", length: 2 }, { letter: "^", length: 5 }, { letter: "°", length: 4 }, { letter: "[", length: 2 }, { letter: "]", length: 2 }, { letter: "{", length: 4 }, { letter: "}", length: 4 }, { letter: "=", length: 6 }, { letter: "(", length: 2 }, { letter: ")", length: 2 }, { letter: "!", length: 1 }, { letter: "?", length: 8 }], prefix = "digitalDiscoFontIncomplete";
+let texts = [];
+function getIndexOfText(id) { for (let i = 0; i < texts.length; i++) { if (texts[i].id == id) { return i; } } return -1; }
+function getIndexOfLetter(letter) { for (let i = 0; i < availiableLetters.length; i++) { if (availiableLetters[i].letter == letter) { return i; } } return -1; }
+function getLetterOffset(letter) { if (letter === undefined) { return 0; } return availiableLetters[getIndexOfLetter(letter)].length + (letter == "{" ? 0 : 1); }
+function getTextLength(text) { return text.split("").reduce((length, letter) => length + getLetterOffset(letter), 0) }
+
+// Fake Block Utility
+const fakeBlockPrefix = "fakeBlock";
+let fakeBlocks = [];
+function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength) {
+    const start = time, end = time + duration;
+    let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+    freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
+        startOrder = 0, endOrder = 0,
+        fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
+        radius === undefined && (radius = 51)
+    const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
+    bonusX === undefined && (bonusX = 0);
+    events.push({
+        time: time, angle: 0, type: "deco", order: 0, hide: false,
+        id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
+        sprite: "block.png",
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
+        ox: 9, oy: 9, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined)
+    }, {
+        time: time, angle: 0, type: "deco", order: 1,
+        id: fakeBlockPrefix + "_" + freeIndex,
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
+        duration: duration
+    }, {
+        time: time + duration, angle: 0, type: "deco",
+        id: fakeBlockPrefix + "_" + freeIndex,
+        hide: true
+    }),
+        appearLength && (events.push({
+            time: time, angle: 0, type: "deco", order: 1,
+            id: fakeBlockPrefix + "_" + freeIndex,
+            sx: 1, sy: 1,
+            duration: appearLength, ease: appearEase
+        }));
+}
+function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength) {
+    const start = time, end = time + duration;
+    let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+    freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
+        startOrder = 0, endOrder = 0,
+        fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
+        radius === undefined && (radius = 36.5)
+    const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
+    bonusX === undefined && (bonusX = 0);
+    events.push({
+        time: time, angle: 0, type: "deco", order: 0, hide: false,
+        id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
+        sprite: "side.png",
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
+        ox: 7, oy: 10, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined),
+        r: r
+    }, {
+        time: time, angle: 0, type: "deco", order: 1,
+        id: fakeBlockPrefix + "_" + freeIndex,
+        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
+        duration: duration
+    }, {
+        time: time + duration, angle: 0, type: "deco",
+        id: fakeBlockPrefix + "_" + freeIndex,
+        hide: true
+    }),
+        appearLength && (events.push({
+            time: time, angle: 0, type: "deco", order: 1,
+            id: fakeBlockPrefix + "_" + freeIndex,
+            sx: 1, sy: 1,
+            duration: appearLength, ease: appearEase
+        }));
+}
+
+// Particle Generator
+const particlePrefix = "particle";
+let particles = [], gravityParticles = [];
+
+
 
 function beautifyText(text) {
     text = String(text)
@@ -1059,8 +1171,18 @@ function addParamInput(param) {
             inputDiv = document.createElement("input"),
                 inputDiv.type = "text";
             break;
+        case "ease":
+            inputDiv = document.createElement("select");
+            for (let i = 0; i < eases.length; i++) {
+                const option = document.createElement("option");
+                option.innerText = eases[i],
+                    option.value = eases[i],
+                    inputDiv.appendChild(option);
+            }
+            break;
         default: throw new Error(["DEFAULT PART OF SWITCH REACHED", param.type].join(" "));
     }
+    param.required && (inputDiv.classList.add("required"))
     return inputDiv;
 }
 function addConstant(constant) {
@@ -1070,7 +1192,7 @@ function addConstant(constant) {
             constantsDiv.appendChild(row);
     }
     const inputDiv = addParamInput(constant), label = document.createElement("label");
-    constant.required && (inputDiv.classList.add("animColor")),
+    constant.required && (inputDiv.classList.add("required")),
         label.innerText = beautifyText(constant.name), label.title = constant.desc,
         inputDiv.classList.add("subsubfield"),
         constantsDiv.lastElementChild.append(label, inputDiv);
@@ -1175,7 +1297,6 @@ function convertInput(input, type, element) {
 }
 
 
-
 // Init
 resultDiv.innerText = "Hover over some tool, constant, event and parameter names to get tooltips\nThis is version " + version,
     resultDiv2.innerText = "The console may give you additional information when running",
@@ -1195,7 +1316,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
         addEvent(func);
     },
     runButton.onclick = () => {
-        events = [], texts = [], constants = {}, abort = false,
+        events = [], texts = [], fakeBlocks = [], particles = [], gravityParticles = [], constants = {}, abort = false,
             resultDiv.innerText = "Empty", resultDiv2.innerText = "Empty";
         let i = 0;
         for (let j = 0; j < constantsDiv.childElementCount; j++) {
@@ -1228,8 +1349,8 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
                 const row = event.children[j];
                 for (let k = 1; k < row.childElementCount; k += 2) {
                     let param = row.children[k].value, paramDefault = func.params[params.length];
-                    func.constOverride && (paramDefault = constants[func.name].params[params.length])
-                    row.children[k].style.backgroundColor = "";
+                    func.constOverride && (paramDefault = constants[func.name].params[params.length]),
+                        row.children[k].style.backgroundColor = "";
                     if (param == "") {
                         param = undefined;
                         if (paramDefault.required) {
@@ -1276,118 +1397,3 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
                 copyButton2.style.backgroundColor = "";
             }, 1000);
     };
-//
-
-
-// General utility
-let events = [], lastAngle = 0, lastDir = 1;
-function normalizeAngle(d) { return ((d % 360) + 360) % 360; }
-function compareAnglesLR(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (180 > tempDiff && tempDiff >= 0 ? "left" : "right"); }
-function compareAnglesFB(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (90 > tempDiff || tempDiff >= 270 ? "front" : "back"); }
-function getAngle(x, y) { return Math.atan2(y, x) / Math.PI * 180; }
-function getDist(x, y) { return Math.hypot(x, y); }
-function cos(d) { return Math.cos(d / 180 * Math.PI); }
-function sin(d) { return Math.sin(d / 180 * Math.PI); }
-
-function randomValue(min, range) { return Math.floor(Math.random() * (range)) + min; }
-function newAngle(snap, minDist, maxDist) {
-    let angle;
-    do {
-        angle = randomValue(0, snap) * 360 / snap;
-    } while (
-        (
-            minDist !== undefined && (
-                normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist
-            )
-        ) || (
-            maxDist !== undefined && (
-                normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist
-            )
-        )
-    ); return angle;
-}
-
-function randomAngle(snap, minAngle, maxAngle) { return randomValue(minAngle / 360 * snap, (maxAngle - minAngle) / 360 * snap) * 360 / snap; }
-function average(...args) { return args.reduce((prev, current) => prev + current, 0) / args.length }
-function randomFromArray(array) { return array[randomValue(0, array.length)]; }
-
-// Text Generator utility
-const availiableLetters = [{ letter: " ", length: 4 }, { letter: "a", length: 8 }, { letter: "b", length: 8 }, { letter: "c", length: 7 }, { letter: "d", length: 8 }, { letter: "e", length: 8 }, { letter: "f", length: 3 }, { letter: "g", length: 8 }, { letter: "h", length: 8 }, { letter: "i", length: 2 }, { letter: "j", length: 2 }, { letter: "k", length: 8 }, { letter: "l", length: 2 }, { letter: "m", length: 11 }, { letter: "n", length: 8 }, { letter: "o", length: 8 }, { letter: "p", length: 8 }, { letter: "q", length: 8 }, { letter: "r", length: 5 }, { letter: "s", length: 7 }, { letter: "t", length: 3 }, { letter: "u", length: 8 }, { letter: "v", length: 8 }, { letter: "w", length: 11 }, { letter: "x", length: 7 }, { letter: "y", length: 8 }, { letter: "z", length: 8 }, { letter: "#", length: 9 }, { letter: "A", length: 8 }, { letter: "B", length: 8 }, { letter: "C", length: 8 }, { letter: "D", length: 8 }, { letter: "E", length: 7 }, { letter: "F", length: 7 }, { letter: "G", length: 9 }, { letter: "H", length: 8 }, { letter: "I", length: 1 }, { letter: "J", length: 3 }, { letter: "K", length: 8 }, { letter: "L", length: 4 }, { letter: "M", length: 11 }, { letter: "N", length: 8 }, { letter: "O", length: 9 }, { letter: "P", length: 8 }, { letter: "Q", length: 9 }, { letter: "R", length: 8 }, { letter: "S", length: 8 }, { letter: "T", length: 7 }, { letter: "U", length: 8 }, { letter: "V", length: 8 }, { letter: "W", length: 11 }, { letter: "X", length: 7 }, { letter: "Y", length: 8 }, { letter: "Z", length: 7 }, { letter: "0", length: 8 }, { letter: "1", length: 1 }, { letter: "2", length: 7 }, { letter: "3", length: 8 }, { letter: "4", length: 8 }, { letter: "5", length: 7 }, { letter: "6", length: 8 }, { letter: "7", length: 6 }, { letter: "8", length: 8 }, { letter: "9", length: 8 }, { letter: "+", length: 5 }, { letter: "-", length: 4 }, { letter: "*", length: 4 }, { letter: "/", length: 3 }, { letter: "\\", length: 3 }, { letter: "%", length: 9 }, { letter: '"', length: 3 }, { letter: "'", length: 1 }, { letter: "&", length: 9 }, { letter: "~", length: 6 }, { letter: ".", length: 1 }, { letter: ",", length: 2 }, { letter: ":", length: 1 }, { letter: ";", length: 2 }, { letter: "_", length: 8 }, { letter: "<", length: 6 }, { letter: ">", length: 6 }, { letter: "|", length: 1 }, { letter: "´", length: 2 }, { letter: "`", length: 2 }, { letter: "^", length: 5 }, { letter: "°", length: 4 }, { letter: "[", length: 2 }, { letter: "]", length: 2 }, { letter: "{", length: 4 }, { letter: "}", length: 4 }, { letter: "=", length: 6 }, { letter: "(", length: 2 }, { letter: ")", length: 2 }, { letter: "!", length: 1 }, { letter: "?", length: 8 }], prefix = "digitalDiscoFontIncomplete";
-let texts = [];
-function getIndexOfText(id) { for (let i = 0; i < texts.length; i++) { if (texts[i].id == id) { return i; } } return -1; }
-function getIndexOfLetter(letter) { for (let i = 0; i < availiableLetters.length; i++) { if (availiableLetters[i].letter == letter) { return i; } } return -1; }
-function getLetterOffset(letter) { if (letter === undefined) { return 0; } return availiableLetters[getIndexOfLetter(letter)].length + (letter == "{" ? 0 : 1); }
-function getTextLength(text) { return text.split("").reduce((length, letter) => length + getLetterOffset(letter), 0) }
-
-// Fake Block Utility
-const fakeBlockPrefix = "fakeBlock";
-let fakeBlocks = [];
-function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength) {
-    const start = time, end = time + duration;
-    let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
-    freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
-        startOrder = 0, endOrder = 0,
-        fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
-        radius === undefined && (radius = 51)
-    const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
-    bonusX === undefined && (bonusX = 0);
-    events.push({
-        time: time, angle: 0, type: "deco", order: 0, hide: false,
-        id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
-        sprite: "block.png",
-        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
-        ox: 9, oy: 9, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined)
-    }, {
-        time: time, angle: 0, type: "deco", order: 1,
-        id: fakeBlockPrefix + "_" + freeIndex,
-        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
-        duration: duration
-    }, {
-        time: time + duration, angle: 0, type: "deco",
-        id: fakeBlockPrefix + "_" + freeIndex,
-        hide: true
-    }),
-        appearLength && (events.push({
-            time: time, angle: 0, type: "deco", order: 1,
-            id: fakeBlockPrefix + "_" + freeIndex,
-            sx: 1, sy: 1,
-            duration: appearLength, ease: appearEase
-        }));
-}
-function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength) {
-    const start = time, end = time + duration;
-    let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
-    freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
-        startOrder = 0, endOrder = 0,
-        fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
-        radius === undefined && (radius = 36.5)
-    const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
-    bonusX === undefined && (bonusX = 0);
-    events.push({
-        time: time, angle: 0, type: "deco", order: 0, hide: false,
-        id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
-        sprite: "side.png",
-        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
-        ox: 7, oy: 10, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined),
-        r: r
-    }, {
-        time: time, angle: 0, type: "deco", order: 1,
-        id: fakeBlockPrefix + "_" + freeIndex,
-        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
-        duration: duration
-    }, {
-        time: time + duration, angle: 0, type: "deco",
-        id: fakeBlockPrefix + "_" + freeIndex,
-        hide: true
-    }),
-        appearLength && (events.push({
-            time: time, angle: 0, type: "deco", order: 1,
-            id: fakeBlockPrefix + "_" + freeIndex,
-            sx: 1, sy: 1,
-            duration: appearLength, ease: appearEase
-        }));
-}
-
-// Particle Generator
-const particlePrefix = "particle";
-let particles = [], gravityParticles = [];

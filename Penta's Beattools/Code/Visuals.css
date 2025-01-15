@@ -60,6 +60,10 @@ input::-webkit-inner-spin-button {
   padding: 0.5rem;
 }
 
+.required {
+  background-color: rgb(127, 0, 0);
+}
+
 .row {
   color: white;
   display: flex;
