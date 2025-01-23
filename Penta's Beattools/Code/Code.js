@@ -1,4 +1,4 @@
-const version = "1.3",
+const version = "2.0",
     toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
     toolLabel = document.querySelector("#toolName"),
@@ -12,7 +12,7 @@ const version = "1.3",
     eventSelect = document.querySelector("#selectEvent"),
     eventButton = document.querySelector("#addEvent"),
     eventDiv = document.querySelector("#eventDiv"),
-    tools = [{
+    tools = [{ // textGenerator
         name: "textGenerator",
         desc: "Generates text groups that you can edit similarly to decos",
         constants: [],
@@ -201,7 +201,7 @@ const version = "1.3",
                 runFunction("textGenerator", "changeText", time + (texts[getIndexOfText(id)].text.length + 5) / lettersPerBeat, undefined, id, texts[getIndexOfText(id)].text.trimEnd());
             }
         }]
-    }, {
+    }, { // untagger
         name: "untagger",
         desc: "Untags tags in your level\nRequires multiple runs to update input options",
         constants: [
@@ -241,7 +241,7 @@ const version = "1.3",
                 untagAll(0);
 
                 function untagAll(recursion) {
-                    if (recursion > 1) {
+                    if (recursion > /*1*/0) { // 0 for now, will add 1 later
                         console.log("The maximum recursion limit (1) has been reached. Something broke."),
                             status = "unfinished",
                             endRecursion(recursion);
@@ -250,13 +250,13 @@ const version = "1.3",
                     console.log(`Starting recursion ${recursion}.`),
                         loop = 0;
                     while ((selectedTag = (recursion == 0 ? constants.level.events : untaggedRunTagEvents).reduce((tag, event) => { return tag ? tag : event.type == "tag" && event.tag != "" && !untaggingTags.includes(event.tag) && event.tag }, false)) !== false && loop <= 100) { // Check for valid Run Tag Event
-                        let selectedTag2 = selectedTag;
                         // Require Tag Data
                         console.log(`    (Untagging ${selectedTag}): Start untagging.`),
                             untaggingTags.push(selectedTag),
                             !untaggedTags.includes(selectedTag) && (untaggedTags.push(selectedTag));
-                        setTimeout(() => {
+                        setTimeout((selectedTag2) => {
                             let tagEvents = constants.inputTagEventParams[selectedTag2];
+                            console.log(selectedTag2, tagEvents)
                             // Warnings
                             if (tagEvents == []) { console.log(`    (Untagging ${selectedTag2}): Nothing in the Tag. Continue deleting Run Tag Events.`); }
                             // Warnings
@@ -270,7 +270,7 @@ const version = "1.3",
                             } else {
                                 continueUntagging(selectedTag2, tagEvents, needsChartData);
                             }
-                        });
+                        }, 0, selectedTag);
                         loop++;
                     }
                     console.log(`Recursion ${recursion} finished.`);
@@ -403,7 +403,7 @@ const version = "1.3",
             constOverride: true //TF wjat does this do lol
         }],
         dontUseEvents: true
-    }, {
+    }, { // randomizer
         name: "randomizer",
         desc: "Randomizes existing notes in your chart\nType Blocks and Mines don't support multiple blocks/holds at the same time\nDoes support one block/hold and one mine and/or side at the same time",
         constants: [
@@ -565,7 +565,7 @@ const version = "1.3",
         },
         after: () => { },
         functions: []
-    }, {
+    }, { // decoChecker
         name: "decoChecker",
         desc: "Returns the amount of unhidden decos in your level",
         constants: [
@@ -595,7 +595,7 @@ const version = "1.3",
         after: () => { },
         functions: [],
         dontUseEvents: true
-    }, {
+    }, { // circleStreamGenerator
         name: "circleStreamGenerator",
         desc: "Generates a path using circles to follow with your mouse\nFirst output will be the eases at the start of the part. You should smoothly transition into them. Untag the first output to be able to edit it the the editor\nSecond output is the tag data for the part",
         constants: [
@@ -726,7 +726,7 @@ const version = "1.3",
         after: () => { },
         functions: [],
         dontUseEvents: true
-    }, {
+    }, { // particleGenerator
         name: "particleGenerator",
         desc: "Outputs tag data",
         constants: [],
@@ -742,43 +742,47 @@ const version = "1.3",
                 { name: "particleDuration1", desc: "The range of how long particles stay", type: "number", required: true, newRow: true },
                 { name: "particleDuration2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "spawnShape", desc: "What shape the particles will generate in\nAll options other than Point will require four parameters\nPoint: Requires X1 and X2\n-Points: Creates a shape between (X1 | Y1) and (X2 | Y2)\n-Size: Creates a shape with middle (X1 | Y1) and width X2 / height Y2\nLine Dir: Creates a line from (X1 | Y1) in the direction X2 with length Y2", type: "select", values: ["point", "linePoints", "lineDir", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"], required: true, newRow: true },
-                { name: "x1", desc: "", type: "number", required: true },
-                { name: "y1", desc: "", type: "number", required: true },
-                { name: "x2", desc: "", type: "number", required: false },
-                { name: "y2", desc: "", type: "number", required: false },
-                { name: "spriteRotationBehavior", desc: "Static: All particles use Rotation1\nRandom: Particles are between Rotation1 and 2\nFollow: DOESNT WORK WITH GRAVITY! Particles rotate in the direction they're moving. Doesnt require parameters", type: "select", values: ["static", "random", "follow"], required: false, newRow: true },
-                { name: "rotation1", desc: "", type: "number", required: false },
-                { name: "rotation2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
-                { name: "spin1", desc: "Particle rotation per beat", type: "number", required: false },
-                { name: "spin2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+                { name: "x", desc: "", type: "number", required: true },
+                { name: "y", desc: "", type: "number", required: true },
+                { name: "x2", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["linePoints", "rectanglePoints", "circlePoints"] },
+                { name: "y2", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["linePoints", "rectanglePoints", "circlePoints"] },
+                { name: "angle", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["lineDir"] },
+                { name: "length", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["lineDir"] },
+                { name: "width", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["rectangleSize", "circleSize"] },
+                { name: "height", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["rectangleSize", "circleSize"] },
+                { name: "spriteRotationFollowsMovement", desc: "DOESNT WORK WITH GRAVITY! Particles rotate in the direction they're moving", type: "boolean", required: false, newRow: true },
+                { name: "rotation1", desc: "", type: "number", required: false, hideWhenParam: "spriteRotationFollowsMovement", hideWhenValue: [true] },
+                { name: "rotation2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false, hideWhenParam: "spriteRotationFollowsMovement", hideWhenValue: [true] },
+                { name: "spin1", desc: "Particle rotation per beat", type: "number", required: false, hideWhenParam: "spriteRotationFollowsMovement", hideWhenValue: [true] },
+                { name: "spin2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false, hideWhenParam: "spriteRotationFollowsMovement", hideWhenValue: [true] },
                 { name: "movementAngle1", desc: "Direction of particle movement", type: "number", required: false, newRow: true },
                 { name: "movementAngle2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "velocity1", desc: "Particle speed", type: "number", required: false },
                 { name: "velocity2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "movementEase", desc: "Ease option to fake ac/deceleration", type: "ease", required: false },
-                { name: "accelerationAngle", desc: "Direction of acceleration", type: "number", required: false, newRow: true },
-                { name: "accelerationFactor", desc: "Strength of acceleration", type: "number", required: false },
+                { name: "accelerationFactor", desc: "Strength of acceleration", type: "number", required: false, newRow: true },
+                { name: "accelerationAngle", desc: "Direction of acceleration", type: "number", required: false, hideWhenParam: "accelerationFactor", hideWhenValue: [0] },
                 { name: "scaleBehavior", desc: "Whether smaller particles will stay smaller (Relative) or can grow to be bigger (Random)\nNoticable with different start- and endscale ranges", type: "select", values: ["random", "relative"], required: true, newRow: true },
                 { name: "scaleStart1", desc: "", type: "number", required: true },
                 { name: "scaleStart2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "scaleEnd1", desc: "", type: "number", required: false },
                 { name: "scaleEnd2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
-                { name: "entryAxis", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
-                { name: "entryEase", desc: "Ease of the entry animation", type: "ease", required: false },
-                { name: "entryDuration", desc: "Duration of the entry animation", type: "number", required: false },
-                { name: "exitAxis", desc: "Determines the axis for the exit animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false },
-                { name: "exitEase", desc: "Ease of the exit animation", type: "ease", required: false },
+                { name: "entryDuration", desc: "Duration of the entry animation", type: "number", required: false, newRow: true },
+                { name: "entryAxis", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, hideWhenParam: "entryDuration", hideWhenValue: [0] },
+                { name: "entryEase", desc: "Ease of the entry animation", type: "ease", required: false, hideWhenParam: "entryDuration", hideWhenValue: [0] },
                 { name: "exitDuration", desc: "Duration of the exit animation", type: "number", required: false },
+                { name: "exitAxis", desc: "Determines the axis for the exit animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, hideWhenParam: "exitDuration", hideWhenValue: [0] },
+                { name: "exitEase", desc: "Ease of the exit animation", type: "ease", required: false, hideWhenParam: "exitDuration", hideWhenValue: [0] },
                 { name: "sprite", desc: "", type: "string", required: false, newRow: true },
                 { name: "ox", desc: "", type: "number", required: false },
                 { name: "oy", desc: "", type: "number", required: false },
                 { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ','\nExamples: '0,1,2,3', '-1', '0,0,0,1'", type: "string", required: false },
                 { name: "parent", desc: "", type: "string", required: false, newRow: true }
             ],
-            function: (emitterStart, emitterEnd, particlesPerBeat, particleDuration1, particleDuration2, spawnShape, x1, y1, x2, y2, spriteRotationBehavior, rotation1, rotation2, spin1, spin2, movementAngle1, movementAngle2, velocity1, velocity2, movementEase, accelerationAngle, accelerationFactor, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, entryAxis, entryEase, entryDuration, exitAxis, exitEase, exitDuration, sprite, ox, oy, colors, parent) => {
+            function: (emitterStart, emitterEnd, particlesPerBeat, particleDuration1, particleDuration2, spawnShape, x1, y1, x2, y2, angle, length, width, height, spriteRotationFollowsMovement, rotation1, rotation2, spin1, spin2, movementAngle1, movementAngle2, velocity1, velocity2, movementEase, accelerationFactor, accelerationAngle, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, entryDuration, entryAxis, entryEase, exitDuration, exitAxis, exitEase, sprite, ox, oy, colors, parent) => {
                 emitterStart === undefined && (emitterStart = 0),
                     particleDuration2 === undefined && (particleDuration2 = particleDuration1),
-                    spriteRotationBehavior === undefined && (spriteRotationBehavior = "random"),
+                    spriteRotationFollowsMovement === undefined && (spriteRotationFollowsMovement = "random"),
                     rotation1 === undefined && (rotation1 = 0),
                     rotation2 === undefined && (rotation2 = rotation1),
                     spin1 === undefined && (spin1 = 0),
@@ -814,30 +818,27 @@ const version = "1.3",
                         case "point": x = x1, y = y1; break;
                         case "linePoints":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            const angle = getAngle(x2 - x1, y2 - y1), dist = getDist(x2 - x1, y2 - y1);
-                            x = x1 + cos(angle) * dist * random, y = y1 + sin(angle) * dist * random;
+                            const angle2 = getAngle(x2 - x1, y2 - y1), dist = getDist(x2 - x1, y2 - y1);
+                            x = x1 + cos(angle2) * dist * random, y = y1 + sin(angle2) * dist * random;
                             break;
                         case "lineDir":
-                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            x = x1 + cos(-90 + x2) * y2 * random, y = y1 + sin(-90 + x2) * y2 * random; break;
+                            x = x1 + cos(-90 + angle) * length * random, y = y1 + sin(-90 + angle) * length * random; break;
                         case "rectanglePoints":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
                             x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
                         case "rectangleSize":
-                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            x = x1 - x2 / 2 + x2 * Math.random(), y = y1 - y2 / 2 + y2 * Math.random(); break;
+                            x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); break;
                         case "circlePoints":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
                             do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getDist((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
                         case "circleSize":
-                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            do { x = x1 - x2 / 2 + x2 * Math.random(), y = y1 - y2 / 2 + y2 * Math.random(); } while (getDist((x - x1) / x2, (y - y1) / y2) > 0.5); break;
+                            do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getDist((x - x1) / width, (y - y1) / height) > 0.5); break;
                         default: abort = true; return;
                     }
-                    switch (spriteRotationBehavior) { // r
-                        case "static": r = rotation1; break;
-                        case "random": r = randomValue(rotation1, rotation2 - rotation1); break;
-                        case "follow": r = dir; break; // NOT YET
+                    if (spriteRotationFollowsMovement) { // r
+                        r = dir; // NOT YET
+                    } else {
+                        r = randomValue(rotation1, rotation2 - rotation1);
                     }
                     switch (scaleBehavior) { // s
                         case "random": sEnd = randomValue(scaleEnd1, scaleEnd2 - scaleEnd1); break;
@@ -911,7 +912,7 @@ const version = "1.3",
                 }
             }
         }]
-    }, {
+    }, { // fakeBlockGenerator
         name: "fakeBlockGenerator",
         desc: "Outputs tag data",
         constants: [],
@@ -961,18 +962,54 @@ const version = "1.3",
                 });
             }
         }]
-    }/*, {
-        name: "bpmChanger (UNFINISHED, does nothing)",
-        desc: "Returns the amount of unhidden decos in your level",
+    }, { // bpmChanger
+        name: "bpmChanger",
+        desc: "Changes the bpm of the level while keeping the notes synced to the song",
         constants: [
-            { name: "level", desc: "The level file that your variant uses", type: "json", required: true, newRow: true }
+            { name: "level", desc: "The level file that your variant uses", type: "json", required: true, newRow: true },
+            { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
+            { name: "newBpm", desc: "", type: "number", required: true, newRow: true },
+            { name: "snapBeat", desc: "The beat snap to round the notes to\nLeave empty for no snap", type: "number", required: false },
+            { name: "dontSnapLevelEventDurations", desc: "Whether or not to keep decorational durations (setColor, ease) the same", type: "boolean", required: false, hideWhenParam: "snapBeat", hideWhenValue: [0] }
         ],
         before: () => {
+            let bpmMult = constants.newBPM / level.events.filter((event) => ["playSong", "setBPM"].includes(event.type)).sort((a, b) => a.time - b.time)[0].bpm;
+            if (bpmMult != bpmMult) { return; }
+            for (let i = 0; i < constants.chart.length; i++) {
+                let event = constants.chart[i];
+                event.time *= bpmMult;
+                if (constants.snapBeat) {
+                    let snapDiff = Math.round(event.time * constants.snapBeat) / constants.snapBeat - event.time;
+                    event.time += snapDiff;
+                }
+                event.duration && (
+                    event.duration *= bpmMult,
+                    constants.snapBeat && (
+                        event.duration = Math.round((event.duration + snapDiff) * constants.snapBeat) / constants.snapBeat
+                    )
+                );
+            }
+            for (let i = 0; i < constants.level.length; i++) {
+                let event = constants.level[i];
+                event.time *= bpmMult;
+                if (constants.snapBeat) {
+                    let snapDiff = Math.round(event.time * constants.snapBeat) / constants.snapBeat - event.time;
+                    event.time += snapDiff;
+                }
+                event.duration && (
+                    event.duration *= bpmMult,
+                    !constants.dontSnapLevelEventDurations && constants.snapBeat && (
+                        event.duration = Math.round((event.duration + snapDiff) * constants.snapBeat) / constants.snapBeat
+                    )
+                );
+            }
+            resultDiv.innerText = JSON.stringify(constants.level),
+                resultDiv2.innerText = JSON.stringify(constants.chart);
         },
         after: () => { },
         functions: [],
         dontUseEvents: true
-    }*/],
+    }],
     eases = ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"];
 let openTool = tools[0],
     constants = {}, abort;
@@ -1095,7 +1132,7 @@ function beautifyText(text) {
     return text;
 }
 function getFirstName(list, name) {
-    return list.filter(obj => obj.name == name)[0];
+    return list.filter(obj => obj.name == name)[0]; // There is a faster way to do this, but its harder to read
 }
 function runFunction(toolName, funcName, ...params) {
     getFirstName(getFirstName(tools, toolName).functions, funcName).function(...params);
@@ -1116,11 +1153,11 @@ function addParamInput(param) {
     switch (param.type) {
         case "number":
             inputDiv = document.createElement("input"),
-                inputDiv.type = "number";
+                inputDiv.type = "number", inputDiv.style.width = "5em";
             break;
         case "string":
             inputDiv = document.createElement("input"),
-                inputDiv.type = "text";
+                inputDiv.type = "text", inputDiv.size = 10;
             break;
         case "select":
             inputDiv = document.createElement("select");
@@ -1138,19 +1175,8 @@ function addParamInput(param) {
             }
             break;
         case "boolean":
-            inputDiv = document.createElement("select");
-            if (true) {
-                const defaultOption = document.createElement("option");
-                defaultOption.innerText = "Undefined",
-                    defaultOption.value = "",
-                    inputDiv.appendChild(defaultOption);
-            }
-            for (let i = 0; i < 2; i++) {
-                const option = document.createElement("option");
-                option.innerText = beautifyText(["true", "false"][i]),
-                    option.value = ["true", "false"][i],
-                    inputDiv.appendChild(option);
-            }
+            inputDiv = document.createElement("input"),
+                inputDiv.type = "checkbox";
             break;
         case "numberSelect":
             inputDiv = document.createElement("select");
@@ -1176,7 +1202,7 @@ function addParamInput(param) {
             for (let i = 0; i < eases.length; i++) {
                 const option = document.createElement("option");
                 option.innerText = eases[i],
-                    option.value = eases[i],
+                    option.value = eases[i], option.value == "linear" && (option.value = undefined),
                     inputDiv.appendChild(option);
             }
             break;
@@ -1192,7 +1218,7 @@ function addConstant(constant) {
             constantsDiv.appendChild(row);
     }
     const inputDiv = addParamInput(constant), label = document.createElement("label");
-    constant.required && (inputDiv.classList.add("required")),
+    constant.required && (inputDiv.classList.add("required"), inputDiv.classList.add("required"), label.classList.add("required")),
         label.innerText = beautifyText(constant.name), label.title = constant.desc,
         inputDiv.classList.add("subsubfield"),
         constantsDiv.lastElementChild.append(label, inputDiv);
@@ -1215,7 +1241,7 @@ function addEvent(func) {
                 eventsDiv.lastElementChild.appendChild(row);
         }
         const inputDiv = addParamInput(param), label = document.createElement("label");
-        param.required && (inputDiv.classList.add("animColor")),
+        param.required && (inputDiv.classList.add("animColor"), inputDiv.classList.add("required"), label.classList.add("required")),
             label.innerText = param.dontBeautifyName ? param.name : beautifyText(param.name),
             label.title = param.desc,
             inputDiv.classList.add("subsubfield"),
@@ -1248,7 +1274,8 @@ function addEvent(func) {
         eventsDiv.lastElementChild.lastElementChild.style.display = "none";
         eventsDiv.lastElementChild.lastElementChild.append(document.createElement("div"), document.createElement("div"), document.createElement("div"));
     }
-    updatePosition();
+    updatePosition(),
+        updateFullVisibility();
 }
 function loadTool(toolName) {
     openTool = getFirstName(tools, toolName);
@@ -1283,16 +1310,56 @@ function loadTool(toolName) {
         eventsDiv.style.display = "none",
             eventDiv.style.display = "none";
     }
+    updateFullVisibility();
 }
 function convertInput(input, type, element) {
     switch (type) {
         case "number": return Number(input);
         case "string": return input;
-        case "boolean": return input == "true" ? true : false;
+        case "boolean": return element.checked;
         case "select": return input;
         case "numberSelect": return Number(input);
         case "json": try { return JSON.parse(input) } catch (error) { element.style.backgroundColor = "red", resultDiv.innerText = "Invalid JSON"; throw new Error(["INVALID JSON", input, type].join(" ")); };
+        case "ease": return input;
         default: throw new Error(["DEFAULT PART OF SWITCH REACHED", type].join(" "));
+    }
+}
+function updateFullVisibility() {
+    let elements = []
+    for (let j = 0; j < constantsDiv.childElementCount; j++) {
+        const row = constantsDiv.children[j];
+        for (let k = 0; k < row.childElementCount; k++) {
+            elements.push(row.children[k]);
+        }
+    }
+    for (let i = 1; i < elements.length; i += 2) {
+        updateVisibility(elements[i], i, openTool.constants)
+    }
+    for (i = 0; i < eventsDiv.childElementCount; i++) {
+        const event = eventsDiv.children[i];
+        elements = [];
+        for (let j = 2; j < event.childElementCount - 1; j++) {
+            const row = event.children[j];
+            for (let k = 0; k < row.childElementCount; k++) {
+                elements.push(row.children[k]);
+            }
+        }
+        for (let i = 1; i < elements.length; i += 2) {
+            updateVisibility(elements[i], i, getFirstName(openTool.functions, event.firstElementChild.innerText).params)
+        }
+    }
+    function updateVisibility(element, i, defaultValues) {
+        if (defaultValues[(i - 1) / 2].showWhenParam) {
+            let checkElement = elements[defaultValues.indexOf(getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam)) * 2 + 1];
+            // console.log(element, defaultValues[(i - 1) / 2].showWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement))
+            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].showWhenValue.includes(convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement)) ? "none" : ""
+        }
+        if (defaultValues[(i - 1) / 2].hideWhenParam) {
+            let checkElement = elements[defaultValues.indexOf(getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam)) * 2 + 1];
+            // console.log(element, defaultValues[(i - 1) / 2].hideWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type, checkElement))
+            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].hideWhenValue.includes(convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type, checkElement)) ? "" : "none"
+        }
+        elements[i - 1].style.display = element.style.display;
     }
 }
 
@@ -1324,9 +1391,9 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
             for (let k = 1; k < row.childElementCount; k += 2) {
                 let constant = row.children[k].value, constDefault = openTool.constants[i];
                 row.children[k].style.backgroundColor = "";
-                if (constant == "") {
+                if (constant == "" || row.children[k].style.display == "none") {
                     constant = undefined;
-                    if (constDefault.required) {
+                    if (constDefault.required && row.children[k].style.display == "") {
                         row.children[k].style.backgroundColor = "red", resultDiv.innerText = "Empty required input",
                             runButton.style.backgroundColor = "red",
                             setTimeout(() => {
@@ -1351,9 +1418,9 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
                     let param = row.children[k].value, paramDefault = func.params[params.length];
                     func.constOverride && (paramDefault = constants[func.name].params[params.length]),
                         row.children[k].style.backgroundColor = "";
-                    if (param == "") {
+                    if (param == "" || row.children[k].style.display == "none") {
                         param = undefined;
-                        if (paramDefault.required) {
+                        if (paramDefault.required && row.children[k].style.display == "") {
                             row.children[k].style.backgroundColor = "red", resultDiv.innerText = "Empty required input",
                                 runButton.style.backgroundColor = "red",
                                 setTimeout(() => {
@@ -1396,4 +1463,5 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
             setTimeout(() => {
                 copyButton2.style.backgroundColor = "";
             }, 1000);
-    };
+    },
+    document.addEventListener("change", updateFullVisibility);

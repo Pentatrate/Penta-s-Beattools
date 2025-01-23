@@ -11,8 +11,8 @@
   <body>
     <div class="field">
       <div class="row">
-        <select class="subfield" id="selectTool"></select>
-        <button class="subfield" id="changeTool">Select</button>
+        <select id="selectTool"></select>
+        <button id="changeTool">Select</button>
       </div>
       <label id="toolName"></label>
       <div class="subfield">
@@ -24,7 +24,7 @@
         <div class="row">
           <label for="time">Add new event</label>
           <select id="selectEvent" class="subsubfield"></select>
-          <button class="subsubfield animColor" id="addEvent">Add</button>
+          <button class="animColor" id="addEvent">Add</button>
         </div>
       </div>
     </div>
@@ -32,9 +32,13 @@
       <div class="row">
         <div class="row">
           <header>Result</header>
-          <button class="subfield animColor" id="runCode">Run</button>
-          <button class="subfield animColor" id="copyResult">Copy First Output</button>
-          <button class="subfield animColor" id="copyResult2">Copy Second Output</button>
+          <button class="animColor" id="runCode">Run</button>
+          <button class="animColor" id="copyResult">
+            Copy First Output
+          </button>
+          <button class="animColor" id="copyResult2">
+            Copy Second Output
+          </button>
         </div>
       </div>
       <div class="subfield" id="result">Javascript not working...</div>
