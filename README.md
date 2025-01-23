@@ -21,14 +21,21 @@ eventually?
 Will get updated to include other tools.
 
 0. Save your level. Beatblock may crash when you make an error here.
-1. Download all .png and .json files and copy them into your level files.
+
+1. 1. Download all .png and .json files and copy them into your level files.
 	You may choose to not download some assets if you are sure they aren't required for your specific situation.
-2. Download the "Penta's Beattools" folder somewhere on your PC and open "Penta's Beattools.html".
+
+	2. Download the "Penta's Beattools" folder somewhere on your PC and open "Penta's Beattools.html".
 	There is no official way to download a folder directly as far as I know, but it's just 3 files and two are in a subfolder.
-3. Select the tool you want to use (Right now only Text Generator).
-4. Add some events and edit them using the tooltips you get when hovering over some labels.
-5. Press "Run" and copy the events into an empty tag file ("tags/*tagName*.json") and save it.
-6. Use the tag in your level.
+
+		Alternative: Download all files in this repository and unzip them. (Click on Download ZIP)
+		
+		![image](https://github.com/user-attachments/assets/f4a94209-4fa8-47d7-ac4f-e76db634b2bf)
+
+2. Select the tool you want to use.
+3. This step is tool specific. Enter your wished values.
+4. Press "Run" and copy the events into an empty tag file ("tags/*tagName*.json") and save it.
+5. Use the tag in your level.
 	You can immediately playtest your changes ingame.
 
 ## Beatblock Event Randomizer
