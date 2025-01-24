@@ -1,4 +1,4 @@
-const version = "2.1",
+const version = "2.2",
     toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
     toolLabel = document.querySelector("#toolName"),
@@ -408,27 +408,32 @@ const version = "2.1",
         desc: "Randomizes existing notes in your chart\nType Blocks and Mines don't support multiple blocks/holds at the same time\nDoes support one block/hold and one mine and/or side at the same time",
         constants: [
             { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
-            { name: "type", desc: "What type of randomizer to run\nReady: Assumes all notes are aligned so you only have to point your paddle to 90° to hit every note without moving", type: "select", values: ["blocks", "mines", "ready"], required: true, newRow: true },
+            { name: "type", desc: "What type of randomizer to run\nReady: Assumes all notes are aligned so you only have to point your paddle to 90° to hit every note without moving\nEverthing else: Assumes you only have one start of a note type at the same moment\nReady is recommended", type: "select", values: ["ready", "blocks", "mines"], required: true, newRow: true },
             { name: "mineBehavior", desc: "How mines should be moved when there's a block/hold on the same beat\nOptional when you don't have any mines or set Type to Mines", type: "select", values: ["opposite", "close", "relative"], required: false, showWhenParam: "type", showWhenValue: ["blocks"] },
-            { name: "blocksOnHolds", desc: "Useful for holdLeniency\nOptional when you don't have any holds or set Type to Mines\nFor Type set to Ready: Whether all holds should have the same amount of additional 360° rotations", type: "boolean", required: false, showWhenParam: "type", showWhenValue: ["blocks", "ready"] },
+            { name: "blocksOnHolds", desc: "Useful for holdLeniency\nOptional when you don't have any holds or set Type to Mines", type: "boolean", required: false, showWhenParam: "type", showWhenValue: ["blocks"] },
             { name: "minTime", desc: "The time the randomizer starts", type: "number", required: false, newRow: true },
             { name: "maxTime", desc: "The time the randomizer ends", type: "number", required: false },
             { name: "startAngle", desc: "The angle the randomizer starts", type: "number", required: false, newRow: true },
             { name: "snap", desc: "The angle snap", type: "number", required: true },
             { name: "minDist", desc: "The minimum angle between two notes", type: "number", required: false },
             { name: "maxDist", desc: "The maximum angle between two notes", type: "number", required: false },
-            { name: "minHoldDir", desc: "The minimum angle the hold travels in one beat\nDefault: 0\nFor Type set to Ready: minimum amout of additional 360° rotations", type: "number", required: false, newRow: true },
-            { name: "maxHoldDir", desc: "The maximum angle the hold travels in one beat\nDefault: 0\nFor Type set to Ready: maximum amout of additional 360° rotations", type: "number", required: false },
+            { name: "minHoldDir", desc: "The minimum angle the hold travels in one beat\nDefault: 0", type: "number", required: false, newRow: true, hideWhenParam: "type", hideWhenValue: ["ready"], showWhenParam: "forceDefaultHoldGeneration", showWhenValue: [true] },
+            { name: "maxHoldDir", desc: "The maximum angle the hold travels in one beat\nDefault: 0", type: "number", required: false, hideWhenParam: "type", hideWhenValue: ["ready"], showWhenParam: "forceDefaultHoldGeneration", showWhenValue: [true] },
+            { name: "minAdditionalRotations", desc: "Minimum amout of additional 360° rotations", type: "number", required: false, showWhenParam: "type", showWhenValue: ["ready"] },
+            { name: "maxAdditionalRotations", desc: "Maximum amout of additional 360° rotations", type: "number", required: false, showWhenParam: "type", showWhenValue: ["ready"] },
+            { name: "holdsRotateTogether", desc: "Whether all holds on the same time should have the same amount of additional 360° rotations", type: "boolean", required: false, showWhenParam: "type", showWhenValue: ["ready"] },
             { name: "sideDir", desc: "The angle between overlapping notes and sides\nAlso used for close mines... for now\n45 is recommended", type: "number", required: false, showWhenParam: "type", showWhenValue: ["blocks"] },
             { name: "closeTime", desc: "How close notes should be to be considered close\nDefault: 0", type: "number", required: false, newRow: true },
             { name: "closeDir", desc: "The angle close notes are moved\nDefault: 0", type: "number", required: false, hideWhenParam: "closeTime", hideWhenValue: [0] },
             { name: "closeBehavior", desc: "How the angle of close notes should behave to their time difference\nDefault: Relative", type: "select", values: ["absolute", "relative"], required: false, hideWhenParam: "closeTime", hideWhenValue: [0] },
-            { name: "holdReorder", desc: "For Type set to Ready: the hold thats set to the highest order", type: "select", values: ["furthestStart", "closestStart", "furthestEnd", "closestEnd"], required: false, newRow: true, showWhenParam: "type", showWhenValue: ["ready"] },
-            { name: "forceDefaultHolds", desc: "For Type set to Ready: forces holds to have default behavior instead of jumping. Min/Max Hold Dir will behave like when Type not set to Ready", type: "boolean", required: false, showWhenParam: "type", showWhenValue: ["ready"] }
+            { name: "holdReorder", desc: "The hold that's set to the highest order", type: "select", values: ["furthestStart", "closestStart", "furthestEnd", "closestEnd"], required: false, newRow: true, showWhenParam: "type", showWhenValue: ["ready"] },
+            { name: "forceDefaultHoldGeneration", desc: "Forces holds to have default behavior instead of jumping. Min/Max Hold Dir will behave like when Type not set to Ready", type: "boolean", required: false, showWhenParam: "type", showWhenValue: ["ready"] }
         ],
         before: () => {
             constants.minHoldDir === undefined && (constants.minHoldDir = 0),
                 constants.maxHoldDir === undefined && (constants.maxHoldDir = 0),
+                constants.minAdditionalRotations === undefined && (constants.minAdditionalRotations = 0),
+                constants.maxAdditionalRotations === undefined && (constants.maxAdditionalRotations = 0),
                 constants.sideDir === undefined && (constants.sideDir = 0),
                 constants.closeTime === undefined && (constants.closeTime = 0),
                 constants.closeDir === undefined && (constants.closeDir = 0),
@@ -451,7 +456,6 @@ const version = "2.1",
             };
             while (constants.chart.filter(event => (event.time > time && event.time <= constants.maxTime) || (["hold", "mineHold"].includes(event.type) && event.time + event.duration > time && event.time + event.duration <= constants.maxTime)).length > 0) {
                 time = Math.min(...[constants.chart.filter(event => event.time > time)[0]?.time, constants.chart.filter(event => ["hold", "mineHold"].includes(event.type) && event.time + event.duration > time).map(event => event.time + event.duration)[0]].filter(time => time !== undefined));
-                console.log(time)
                 switch (constants.type) {
                     case "blocks":
                         constants.chart.filter(event => event.time == time && ["block", "inverse", "hold"].includes(event.type)).forEach(event => {
@@ -513,7 +517,7 @@ const version = "2.1",
                     case "ready":
                         const prevEvent = angles.length == 1 && (angles[angles.length - 1].time >= time - constants.closeTime && angles[angles.length - 1]),
                             preverEvent = prevEvent && angles.length == 2 ? angles[angles.length - 2].time >= prevEvent.time - constants.closeTime && angles[angles.length - 2] : undefined,
-                            additionalRotations = randomValue(constants.minHoldDir, constants.maxHoldDir - constants.minHoldDir) * randomValue(-0.5, 2) * 2 * 360;
+                            additionalRotations = randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
                         constants.chart.filter(event => event.type != "extraTap" && (event.time == time || (["hold", "mineHold"].includes(event.type) && event.time + event.duration == time))).forEach(event => {
                             if (lastEvent) {
                                 switch (true) { // Holds ignored, im not insane enough to code that
@@ -533,13 +537,13 @@ const version = "2.1",
                             }
                             if (event.time == time) {
                                 event.angle = normalizeAngle(event.angle - 90 + value);
-                                if (constants.forceDefaultHolds && ["hold", "mineHold"].includes(event.type)) {
-                                    !forcedAngles.reduce((prev, angle) => prev || angle.time == time, false) && (forcedAngles.push({ time: time + event.duration, angle: value + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * (randomValue(0, 2) - 0.5) * 2 }));
+                                if (constants.forceDefaultHoldGeneration && ["hold", "mineHold"].includes(event.type)) {
+                                    !forcedAngles.reduce((prev, angle) => prev || angle.time == time + event.duration, false) && (forcedAngles.push({ time: time + event.duration, angle: value + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * (randomValue(0, 2) - 0.5) * 2 }));
                                 }
                             } else {
                                 event.angle2 = normalizeAngle(event.angle2 - 90 + value - event.angle),
                                     event.angle2 = event.angle + event.angle2 - (event.angle2 > 180 ? 360 : 0),
-                                    event.angle2 += constants.blocksOnHolds ? additionalRotations : randomValue(constants.minHoldDir, constants.maxHoldDir - constants.minHoldDir) * randomValue(-0.5, 2) * 2 * 360;
+                                    event.angle2 += constants.holdsRotateTogether ? additionalRotations : randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
                             }
                             lastEvent = event;
                         }),
@@ -1356,15 +1360,15 @@ function updateFullVisibility() {
         }
     }
     function updateVisibility(element, i, defaultValues) {
-        if (defaultValues[(i - 1) / 2].showWhenParam) {
-            let checkElement = elements[defaultValues.indexOf(getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam)) * 2 + 1];
-            // console.log(element, defaultValues[(i - 1) / 2].showWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement))
-            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].showWhenValue.includes(convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement)) ? "none" : ""
-        }
         if (defaultValues[(i - 1) / 2].hideWhenParam) {
             let checkElement = elements[defaultValues.indexOf(getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam)) * 2 + 1];
             // console.log(element, defaultValues[(i - 1) / 2].hideWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type, checkElement))
             element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].hideWhenValue.includes(convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type, checkElement)) ? "" : "none"
+        }
+        if (defaultValues[(i - 1) / 2].showWhenParam) {
+            let checkElement = elements[defaultValues.indexOf(getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam)) * 2 + 1];
+            // console.log(element, defaultValues[(i - 1) / 2].showWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement))
+            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].showWhenValue.includes(convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement)) ? (defaultValues[(i - 1) / 2].hideWhenParam ? element.style.display : "none") : ""
         }
         elements[i - 1].style.display = element.style.display;
     }
