@@ -1,4 +1,4 @@
-const version = "2.0",
+const version = "2.1",
     toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
     toolLabel = document.querySelector("#toolName"),
@@ -29,8 +29,8 @@ const version = "2.0",
                 { name: "horizontalAnchor", desc: "Default: Left", type: "select", values: ["left", "middle", "right"], required: false, newRow: true },
                 { name: "verticalAnchor", desc: "Default: Top", type: "select", values: ["top", "middle", "bottom"], required: false },
                 { name: "parentid", desc: "", type: "string", required: false, newRow: true },
-                { name: "rotationInfluence", desc: "", type: "number", required: false },
-                { name: "orbit", desc: "", type: "boolean", required: false },
+                { name: "rotationInfluence", desc: "", type: "number", required: false, hideWhenParam: "parentid", hideWhenValue: [""] },
+                { name: "orbit", desc: "", type: "boolean", required: false, hideWhenParam: "parentid", hideWhenValue: [""] },
                 { name: "x", desc: "", type: "number", required: false, newRow: true },
                 { name: "y", desc: "", type: "number", required: false },
                 { name: "r", desc: "", type: "number", required: false },
@@ -43,7 +43,7 @@ const version = "2.0",
                 { name: "recolor", desc: "", type: "numberSelect", values: [-1, 0, 1, 2, 3, 4, 5, 6, 7], required: false },
                 { name: "outline", desc: "", type: "boolean", required: false, newRow: true },
                 { name: "effectCanvas", desc: "", type: "boolean", required: false },
-                { name: "effectCanvasRaw", desc: "", type: "boolean", required: false }
+                { name: "effectCanvasRaw", desc: "", type: "boolean", required: false, hideWhenParam: "effectCanvas", hideWhenValue: [false] }
             ],
             function: (time, order, id, text, horizontalAnchor, verticalAnchor, parentid, rotationInfluence, orbit, x, y, r, sx, sy, kx, ky, drawLayer, drawOrder, recolor, outline, effectCanvas, effectCanvasRaw) => {
                 text === undefined && (text = ""),
@@ -129,7 +129,7 @@ const version = "2.0",
                 { name: "recolor", desc: "", type: "numberSelect", values: [-1, 0, 1, 2, 3, 4, 5, 6, 7], required: false },
                 { name: "outline", desc: "", type: "boolean", required: false, newRow: true },
                 { name: "effectCanvas", desc: "", type: "boolean", required: false },
-                { name: "effectCanvasRaw", desc: "", type: "boolean", required: false },
+                { name: "effectCanvasRaw", desc: "", type: "boolean", required: false, hideWhenParam: "effectCanvas", hideWhenValue: [false] },
                 { name: "duration", desc: "", type: "number", required: false, newRow: true },
                 { name: "ease", desc: "", type: "ease", required: false }
             ],
@@ -409,8 +409,8 @@ const version = "2.0",
         constants: [
             { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
             { name: "type", desc: "What type of randomizer to run\nReady: Assumes all notes are aligned so you only have to point your paddle to 90° to hit every note without moving", type: "select", values: ["blocks", "mines", "ready"], required: true, newRow: true },
-            { name: "mineBehavior", desc: "How mines should be moved when there's a block/hold on the same beat\nOptional when you don't have any mines or set Type to Mines", type: "select", values: ["opposite", "close", "relative"], required: false },
-            { name: "blocksOnHolds", desc: "Useful for holdLeniency\nOptional when you don't have any holds or set Type to Mines\nFor Type set to Ready: Whether all holds should have the same amount of additional 360° rotations", type: "boolean", required: false },
+            { name: "mineBehavior", desc: "How mines should be moved when there's a block/hold on the same beat\nOptional when you don't have any mines or set Type to Mines", type: "select", values: ["opposite", "close", "relative"], required: false, showWhenParam: "type", showWhenValue: ["blocks"] },
+            { name: "blocksOnHolds", desc: "Useful for holdLeniency\nOptional when you don't have any holds or set Type to Mines\nFor Type set to Ready: Whether all holds should have the same amount of additional 360° rotations", type: "boolean", required: false, showWhenParam: "type", showWhenValue: ["blocks", "ready"] },
             { name: "minTime", desc: "The time the randomizer starts", type: "number", required: false, newRow: true },
             { name: "maxTime", desc: "The time the randomizer ends", type: "number", required: false },
             { name: "startAngle", desc: "The angle the randomizer starts", type: "number", required: false, newRow: true },
@@ -419,12 +419,12 @@ const version = "2.0",
             { name: "maxDist", desc: "The maximum angle between two notes", type: "number", required: false },
             { name: "minHoldDir", desc: "The minimum angle the hold travels in one beat\nDefault: 0\nFor Type set to Ready: minimum amout of additional 360° rotations", type: "number", required: false, newRow: true },
             { name: "maxHoldDir", desc: "The maximum angle the hold travels in one beat\nDefault: 0\nFor Type set to Ready: maximum amout of additional 360° rotations", type: "number", required: false },
-            { name: "sideDir", desc: "The angle between overlapping notes and sides\nAlso used for close mines... for now\n45 is recommended", type: "number", required: false, newRow: true },
+            { name: "sideDir", desc: "The angle between overlapping notes and sides\nAlso used for close mines... for now\n45 is recommended", type: "number", required: false, showWhenParam: "type", showWhenValue: ["blocks"] },
             { name: "closeTime", desc: "How close notes should be to be considered close\nDefault: 0", type: "number", required: false, newRow: true },
-            { name: "closeDir", desc: "The angle close notes are moved\nDefault: 0", type: "number", required: false },
-            { name: "closeBehavior", desc: "How the angle of close notes should behave to their time difference\nDefault: Relative", type: "select", values: ["absolute", "relative"], required: false },
-            { name: "holdReorder", desc: "For Type set to Ready: the hold thats set to the highest order", type: "select", values: ["furthestStart", "closestStart", "furthestEnd", "closestEnd"], required: false, newRow: true },
-            { name: "forceDefaultHolds", desc: "For Type set to Ready: forces holds to have default behavior instead of jumping. Min/Max Hold Dir will behave like when Type not set to Ready", type: "boolean", required: false }
+            { name: "closeDir", desc: "The angle close notes are moved\nDefault: 0", type: "number", required: false, hideWhenParam: "closeTime", hideWhenValue: [0] },
+            { name: "closeBehavior", desc: "How the angle of close notes should behave to their time difference\nDefault: Relative", type: "select", values: ["absolute", "relative"], required: false, hideWhenParam: "closeTime", hideWhenValue: [0] },
+            { name: "holdReorder", desc: "For Type set to Ready: the hold thats set to the highest order", type: "select", values: ["furthestStart", "closestStart", "furthestEnd", "closestEnd"], required: false, newRow: true, showWhenParam: "type", showWhenValue: ["ready"] },
+            { name: "forceDefaultHolds", desc: "For Type set to Ready: forces holds to have default behavior instead of jumping. Min/Max Hold Dir will behave like when Type not set to Ready", type: "boolean", required: false, showWhenParam: "type", showWhenValue: ["ready"] }
         ],
         before: () => {
             constants.minHoldDir === undefined && (constants.minHoldDir = 0),
@@ -925,19 +925,19 @@ const version = "2.0",
                 { name: "chart", desc: "", type: "json", required: true, newRow: true },
                 { name: "start", desc: "", type: "number", required: false, newRow: true },
                 { name: "end", desc: "", type: "number", required: true },
-                { name: "parent", desc: "", type: "string", required: false, newRow: true },
+                { name: "onlyInPart", desc: "True: Only the notes within the time will get fully faked\nFalse: Notes will only get faked within the part and will spontaniously appear/dissappear at the start/end", type: "boolean", required: false },
+                { name: "radius", desc: "The distance to the player when the blocks hit\nDefault: 51", type: "number", required: false, newRow: true },
+                { name: "parent", desc: "", type: "string", required: false },
                 { name: "speed", desc: "", type: "number", required: false, newRow: true },
                 { name: "scrollSpeed", desc: "", type: "number", required: false },
                 { name: "spawnOffset", desc: "", type: "number", required: false },
                 { name: "randomDirections", desc: "Whether the notes will come from random directions", type: "boolean", required: false, newRow: true },
-                { name: "fakes", desc: "How many fakes per note will appear\nWorks great with Random Directions", type: "number", required: false, newRow: true },
-                { name: "onlyInPart", desc: "True: Only the notes within the time will get fully faked\nFalse: Notes will only get faked within the part and will spontaniously appear/dissappear at the start/end", type: "boolean", required: false, newRow: true },
-                { name: "radius", desc: "The distance to the player when the blocks hit\nDefault: 51", type: "number", required: false, newRow: true },
-                { name: "appearType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, newRow: true },
-                { name: "appearEase", desc: "Ease of the entry animation", type: "ease", required: false },
-                { name: "appearLength", desc: "Duration of the entry animation", type: "number", required: false }
+                { name: "fakes", desc: "How many fakes per note will appear\nWorks great with Random Directions", type: "number", required: false, hideWhenParam: "randomDirections", hideWhenValue: [false] },
+                { name: "appearLength", desc: "Duration of the entry animation", type: "number", required: false, newRow: true },
+                { name: "appearType", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, hideWhenParam: "appearLength", hideWhenValue: [0] },
+                { name: "appearEase", desc: "Ease of the entry animation", type: "ease", required: false, hideWhenParam: "appearLength", hideWhenValue: [0] }
             ],
-            function: (chart, start, end, parent, speed, scrollSpeed, spawnOffset, randomDirections, fakes, onlyInPart, radius, appearType, appearEase, appearLength) => {
+            function: (chart, start, end, onlyInPart, radius, parent, speed, scrollSpeed, spawnOffset, randomDirections, fakes, appearLength, appearType, appearEase) => {
                 start === undefined && (start = 0),
                     speed === undefined && (speed = 70),
                     scrollSpeed === undefined && (scrollSpeed = 1),
@@ -973,33 +973,40 @@ const version = "2.0",
             { name: "dontSnapLevelEventDurations", desc: "Whether or not to keep decorational durations (setColor, ease) the same", type: "boolean", required: false, hideWhenParam: "snapBeat", hideWhenValue: [0] }
         ],
         before: () => {
-            let bpmMult = constants.newBPM / level.events.filter((event) => ["playSong", "setBPM"].includes(event.type)).sort((a, b) => a.time - b.time)[0].bpm;
+            console.log(constants.level.events.filter((event) => ["play", "setBPM"].includes(event.type)).sort((a, b) => a.time - b.time))
+            let bpmMult = constants.newBpm / constants.level.events.filter((event) => ["play", "setBPM"].includes(event.type)).sort((a, b) => a.time - b.time)[0].bpm, snapDiff;
+            console.log(bpmMult)
             if (bpmMult != bpmMult) { return; }
+            constants.level.properties.speed /= bpmMult,
+                constants.level.properties.startingBeat *= bpmMult,
+                constants.level.properties.loadBeat *= bpmMult,
+                constants.level.properties.offset *= bpmMult;
             for (let i = 0; i < constants.chart.length; i++) {
                 let event = constants.chart[i];
                 event.time *= bpmMult;
                 if (constants.snapBeat) {
-                    let snapDiff = Math.round(event.time * constants.snapBeat) / constants.snapBeat - event.time;
+                    snapDiff = Math.round(event.time * constants.snapBeat) / constants.snapBeat - event.time;
                     event.time += snapDiff;
                 }
                 event.duration && (
                     event.duration *= bpmMult,
                     constants.snapBeat && (
-                        event.duration = Math.round((event.duration + snapDiff) * constants.snapBeat) / constants.snapBeat
+                        event.duration = Math.round((event.duration - snapDiff) * constants.snapBeat) / constants.snapBeat
                     )
                 );
             }
-            for (let i = 0; i < constants.level.length; i++) {
-                let event = constants.level[i];
-                event.time *= bpmMult;
+            for (let i = 0; i < constants.level.events.length; i++) {
+                let event = constants.level.events[i];
+                event.time *= bpmMult,
+                    event.bpm && (event.bpm *= bpmMult);
                 if (constants.snapBeat) {
-                    let snapDiff = Math.round(event.time * constants.snapBeat) / constants.snapBeat - event.time;
+                    snapDiff = Math.round(event.time * constants.snapBeat) / constants.snapBeat - event.time;
                     event.time += snapDiff;
                 }
                 event.duration && (
                     event.duration *= bpmMult,
                     !constants.dontSnapLevelEventDurations && constants.snapBeat && (
-                        event.duration = Math.round((event.duration + snapDiff) * constants.snapBeat) / constants.snapBeat
+                        event.duration = Math.round((event.duration - snapDiff) * constants.snapBeat) / constants.snapBeat
                     )
                 );
             }
@@ -1320,7 +1327,7 @@ function convertInput(input, type, element) {
         case "select": return input;
         case "numberSelect": return Number(input);
         case "json": try { return JSON.parse(input) } catch (error) { element.style.backgroundColor = "red", resultDiv.innerText = "Invalid JSON"; throw new Error(["INVALID JSON", input, type].join(" ")); };
-        case "ease": return input;
+        case "ease": return input == "undefined" ? undefined : input;
         default: throw new Error(["DEFAULT PART OF SWITCH REACHED", type].join(" "));
     }
 }
