@@ -1,12 +1,14 @@
-const version = "2.2",
+const version = "3.0",
     toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
+    pasteButton = document.querySelector("#pastePrompt"),
     toolLabel = document.querySelector("#toolName"),
     resultDiv = document.querySelector("#result"),
     resultDiv2 = document.querySelector("#result2"),
     runButton = document.querySelector("#runCode"),
     copyButton = document.querySelector("#copyResult"),
     copyButton2 = document.querySelector("#copyResult2"),
+    copyButton3 = document.querySelector("#copyPrompt"),
     constantsDiv = document.querySelector("#constantsDiv"),
     eventsDiv = document.querySelector("#eventsDiv"),
     eventSelect = document.querySelector("#selectEvent"),
@@ -211,14 +213,14 @@ const version = "2.2",
         ],
         before: () => {
             if (constants.selectTag) {
-                const event = JSON.parse(JSON.stringify(getFirstName(openTool.functions, "selectTag")));
-                constants.level.events.forEach(event2 => { event2.type == "tag" && !getFirstName(event.params, "selectTag").values.includes(event2.tag) && (getFirstName(event.params, "selectTag").values.push(event2.tag)) });
+                const event = JSON.parse(JSON.stringify(getFirstByName(openTool.functions, "selectTag")));
+                constants.level.events.forEach(event2 => { event2.type == "tag" && !getFirstByName(event.params, "selectTag").values.includes(event2.tag) && (getFirstByName(event.params, "selectTag").values.push(event2.tag)) });
                 if (eventsDiv.childElementCount != 1 || eventsDiv.firstElementChild.firstElementChild.innerText != "selectTag") {
                     while (eventsDiv.firstElementChild) { eventsDiv.firstElementChild.remove(); }
                     addEvent(event);
                 }
             } else {
-                const event = JSON.parse(JSON.stringify(getFirstName(openTool.functions, "inputTagEvents")));
+                const event = JSON.parse(JSON.stringify(getFirstByName(openTool.functions, "inputTagEvents")));
                 constants.level.events.forEach(event2 => { event2.type == "tag" && !event.params.filter(param => param.name == event2.tag)[0] && (event.params.push({ name: event2.tag, desc: "", type: "json", required: true, newRow: true, dontBeautifyName: true })) }),
                     constants.inputTagEvents = event;
                 if (eventsDiv.childElementCount != 1 || eventsDiv.firstElementChild.firstElementChild.innerText != "inputTagEvents") {
@@ -1020,8 +1022,59 @@ const version = "2.2",
         after: () => { },
         functions: [],
         dontUseEvents: true
+    }, { // totalHitFinder
+        name: "totalHitFinder",
+        desc: "Returns the total amount of combo you can get\n1 Miss = 1 Inaccuracy\n1 Barely = 0.25 Inaccuracies",
+        constants: [
+            { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
+            { name: "extra", desc: "Additional grade calculations", type: "select", values: ["maxInaccuracies", "maxMisses", "maxBarelies", "grade"], newRow: true },
+            { name: "grade", desc: "", type: "grade", required: true, showWhenParam: "extra", showWhenValue: ["maxInaccuracies", "maxMisses", "maxBarelies"] },
+            { name: "misses", desc: "", type: "number", required: true, showWhenParam: "extra", showWhenValue: ["maxBarelies", "grade"] },
+            { name: "barelies", desc: "", type: "number", required: true, showWhenParam: "extra", showWhenValue: ["maxMisses", "grade"] }
+        ],
+        before: () => {
+            let totalHits = constants.chart.reduce((totalHits, event) => {
+                // if (event.time > constants.chart.filter(event => event.type == "showResults").sort((a, b) => a.time - b.time)[0].time + 4.5) return totalHits; // I think the game also doesnt check for this
+                switch (event.type) {
+                    case "block": return totalHits + 1 + Boolean(event.tap);
+                    case "hold": return totalHits + 1 + Boolean(event.startTap) + 1 + Boolean(event.endTap) // + (event.time + event.duration > constants.chart.filter(event => event.type == "showResults").sort((a, b) => a.time - b.time)[0].time + 4.5 ? 0 : 1 + Boolean(event.endTap)); // I think the game also doesnt check for this
+                    case "inverse": return totalHits + 1 + Boolean(event.tap);
+                    case "mine": return totalHits + 1;
+                    case "mineHold": return totalHits + 1;
+                    case "side": return totalHits + 1 + Boolean(event.tap);
+                    case "extraTap": return totalHits + 1;
+                }
+            }, 0);
+            resultDiv.innerText = totalHits;
+            switch (constants.extra) {
+                case "maxInaccuracies": resultDiv2.innerText = Math.floor(totalHits * (1 - getFirstByName(grades, constants.grade).acc / 100) * 4) / 4; break;
+                case "maxMisses": resultDiv2.innerText = Math.floor(totalHits * (1 - getFirstByName(grades, constants.grade).acc / 100) - constants.barelies / 4); break;
+                case "maxBarelies": resultDiv2.innerText = Math.floor(totalHits * (1 - getFirstByName(grades, constants.grade).acc / 100) * 4 - constants.misses * 4); break;
+                case "grade": let acc = (1 - (constants.misses + constants.barelies / 4) / totalHits) * 100; resultDiv2.innerText = [grades.sort((a, b) => a.acc - b.acc).reverse().reduce((prev, grade, i) => prev || ((acc >= grade.acc || i == grades.length - 1) && grade.name), false), " (", Math.floor(acc * 100) / 100, "%)"].join(""); break;
+            }
+        },
+        after: () => { },
+        functions: [],
+        dontUseEvents: true
     }],
-    eases = ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"];
+    eases = ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"],
+    grades = [
+        { acc: 100, name: 'P' },
+        { acc: 98, name: 'S+' },
+        { acc: 95, name: 'S' },
+        { acc: 93, name: 'A+' },
+        { acc: 90, name: 'A' },
+        { acc: 87, name: 'B+' },
+        { acc: 83, name: 'B' },
+        { acc: 80, name: 'B-' },
+        { acc: 77, name: 'C+' },
+        { acc: 73, name: 'C' },
+        { acc: 70, name: 'C-' },
+        { acc: 64, name: 'D+' },
+        { acc: 56, name: 'D' },
+        { acc: 50, name: 'D-' },
+        { acc: -999, name: 'F' }
+    ];
 let openTool = tools[0],
     constants = {}, abort;
 //
@@ -1142,11 +1195,11 @@ function beautifyText(text) {
     }
     return text;
 }
-function getFirstName(list, name) {
+function getFirstByName(list, name) {
     return list.filter(obj => obj.name == name)[0]; // There is a faster way to do this, but its harder to read
 }
 function runFunction(toolName, funcName, ...params) {
-    getFirstName(getFirstName(tools, toolName).functions, funcName).function(...params);
+    getFirstByName(getFirstByName(tools, toolName).functions, funcName).function(...params);
 }
 function updatePosition() {
     for (let i = 0; i < eventsDiv.childElementCount; i++) {
@@ -1213,7 +1266,22 @@ function addParamInput(param) {
             for (let i = 0; i < eases.length; i++) {
                 const option = document.createElement("option");
                 option.innerText = eases[i],
-                    option.value = eases[i], option.value == "linear" && (option.value = undefined),
+                    option.value = eases[i], option.value == "linear" && (option.value = ""),
+                    inputDiv.appendChild(option);
+            }
+            break;
+        case "grade":
+            inputDiv = document.createElement("select");
+            if (true) {
+                const defaultOption = document.createElement("option");
+                defaultOption.innerText = "Undefined",
+                    defaultOption.value = "",
+                    inputDiv.appendChild(defaultOption);
+            }
+            for (let i = 0; i < grades.map(grade => grade.name).length; i++) {
+                const option = document.createElement("option");
+                option.innerText = param.dontBeautifyValues ? grades.map(grade => grade.name)[i] : beautifyText(grades.map(grade => grade.name)[i]),
+                    option.value = grades.map(grade => grade.name)[i],
                     inputDiv.appendChild(option);
             }
             break;
@@ -1289,7 +1357,7 @@ function addEvent(func) {
         updateFullVisibility();
 }
 function loadTool(toolName) {
-    openTool = getFirstName(tools, toolName);
+    openTool = getFirstByName(tools, toolName);
     if (openTool === undefined) { throw new Error(["INVALID TOOL", toolName].join(" ")); }
 
     while (constantsDiv.firstElementChild) { constantsDiv.firstElementChild.remove(); }
@@ -1323,20 +1391,22 @@ function loadTool(toolName) {
     }
     updateFullVisibility();
 }
-function convertInput(input, type, element) {
+function convertInput(element, type, dontForce) {
+    if (!dontForce && (type == "checkbox" ? element.checked == false : element.value == "")) { return undefined; }
     switch (type) {
-        case "number": return Number(input);
-        case "string": return input;
+        case "number": if (dontForce && element.value == "") { return undefined; } return Number(element.value);
+        case "string": return element.value;
         case "boolean": return element.checked;
-        case "select": return input;
-        case "numberSelect": return Number(input);
-        case "json": try { return JSON.parse(input) } catch (error) { element.style.backgroundColor = "red", resultDiv.innerText = "Invalid JSON"; throw new Error(["INVALID JSON", input, type].join(" ")); };
-        case "ease": return input == "undefined" ? undefined : input;
+        case "select": return element.value;
+        case "numberSelect": return Number(element.value);
+        case "json": if (dontForce && element.value == "") { return undefined; } try { return JSON.parse(element.value); } catch (error) { element.style.backgroundColor = "red", resultDiv.innerText = "Invalid JSON"; throw new Error(["INVALID JSON", element.value, type].join(" ")); }
+        case "ease": return element.value;
+        case "grade": return element.value;
         default: throw new Error(["DEFAULT PART OF SWITCH REACHED", type].join(" "));
     }
 }
 function updateFullVisibility() {
-    let elements = []
+    let elements = [];
     for (let j = 0; j < constantsDiv.childElementCount; j++) {
         const row = constantsDiv.children[j];
         for (let k = 0; k < row.childElementCount; k++) {
@@ -1356,22 +1426,77 @@ function updateFullVisibility() {
             }
         }
         for (let i = 1; i < elements.length; i += 2) {
-            updateVisibility(elements[i], i, getFirstName(openTool.functions, event.firstElementChild.innerText).params)
+            updateVisibility(elements[i], i, getFirstByName(openTool.functions, event.firstElementChild.innerText).params)
         }
     }
     function updateVisibility(element, i, defaultValues) {
         if (defaultValues[(i - 1) / 2].hideWhenParam) {
-            let checkElement = elements[defaultValues.indexOf(getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam)) * 2 + 1];
+            let checkElement = elements[defaultValues.indexOf(getFirstByName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam)) * 2 + 1];
             // console.log(element, defaultValues[(i - 1) / 2].hideWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type, checkElement))
-            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].hideWhenValue.includes(convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type, checkElement)) ? "" : "none"
+            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].hideWhenValue.includes(convertInput(checkElement, getFirstByName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type)) ? "" : "none"
         }
         if (defaultValues[(i - 1) / 2].showWhenParam) {
-            let checkElement = elements[defaultValues.indexOf(getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam)) * 2 + 1];
+            let checkElement = elements[defaultValues.indexOf(getFirstByName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam)) * 2 + 1];
             // console.log(element, defaultValues[(i - 1) / 2].showWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement))
-            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].showWhenValue.includes(convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement)) ? (defaultValues[(i - 1) / 2].hideWhenParam ? element.style.display : "none") : ""
+            element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].showWhenValue.includes(convertInput(checkElement, getFirstByName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type)) ? (defaultValues[(i - 1) / 2].hideWhenParam ? element.style.display : "none") : ""
         }
         elements[i - 1].style.display = element.style.display;
     }
+}
+function saveInput() {
+    let save = { version: version, tool: openTool.name, constants: [], events: [] }, i = 0;
+    for (let j = 0; j < constantsDiv.childElementCount; j++) {
+        const row = constantsDiv.children[j];
+        for (let k = 1; k < row.childElementCount; k += 2) {
+            save.constants.push(convertInput(row.children[k], openTool.constants[i].type, true)), i++;
+        }
+    }
+    for (let j = 0; j < eventsDiv.childElementCount; j++) {
+        const event = eventsDiv.children[j];
+        save.events.push({ name: getFirstByName(openTool.functions, event.firstElementChild.innerText).name, params: [] });
+        for (let k = 2; k < event.childElementCount - 1; k++) {
+            const row = event.children[k];
+            for (let l = 1; l < row.childElementCount; l += 2) {
+                save.events[save.events.length - 1].params.push(convertInput(row.children[l], getFirstByName(openTool.functions, event.firstElementChild.innerText).params[save.events[save.events.length - 1].params.length].type, true));
+            }
+        }
+    }
+    return save;
+}
+function loadInput(data) {
+    try { data = JSON.parse(data); } catch (error) { element.style.backgroundColor = "red", resultDiv.innerText = "Invalid JSON"; throw new Error(["INVALID JSON", data].join(" ")); }
+    data.version != version && (window.alert("Version of data in clipboard not not match webpage version.\nSome values may be invalid."));
+    loadTool(data.tool);
+    let i = 0;
+    for (let j = 0; j < constantsDiv.childElementCount && i < data.constants.length; j++) {
+        const row = constantsDiv.children[j];
+        for (let k = 1; k < row.childElementCount && i < data.constants.length; k += 2) {
+            if (data.constants[i]) {
+                switch (typeof data.constants[i]) {
+                    case "boolean": row.children[k].checked = Boolean(data.constants[i]); break;
+                    case "object": row.children[k].value = JSON.stringify(data.constants[i]); break;
+                    default: row.children[k].value = String(data.constants[i]); break;
+                }
+            }
+            i++;
+        }
+    }
+    data.events.forEach(event => {
+        addEvent(getFirstByName(openTool.functions, event.name)), i = 0;
+        for (let j = 2; j < eventsDiv.lastElementChild.childElementCount - 1; j++) {
+            const row = eventsDiv.lastElementChild.children[j];
+            for (let k = 1; k < row.childElementCount; k += 2) {
+                if (event.params[i]) {
+                    switch (typeof event.params[i]) {
+                        case "boolean": row.children[k].checked = Boolean(event.params[i]); break;
+                        case "object": row.children[k].value = JSON.stringify(event.params[i]); break;
+                        default: row.children[k].value = String(event.params[i]); break;
+                    }
+                }
+                i++;
+            }
+        }
+    }), updateFullVisibility();
 }
 
 
@@ -1390,7 +1515,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
         loadTool(toolSelect.value);
     },
     eventButton.onclick = () => {
-        const func = getFirstName(openTool.functions, eventSelect.value);
+        const func = getFirstByName(openTool.functions, eventSelect.value);
         addEvent(func);
     },
     runButton.onclick = () => {
@@ -1402,9 +1527,9 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
             for (let k = 1; k < row.childElementCount; k += 2) {
                 let constant = row.children[k].value, constDefault = openTool.constants[i];
                 row.children[k].style.backgroundColor = "";
-                if (constant == "" || row.children[k].style.display == "none") {
+                if (constant == "" && row.children[k].style.display == "") {
                     constant = undefined;
-                    if (constDefault.required && row.children[k].style.display == "") {
+                    if (constDefault.required) {
                         row.children[k].style.backgroundColor = "red", resultDiv.innerText = "Empty required input",
                             runButton.style.backgroundColor = "red",
                             setTimeout(() => {
@@ -1413,7 +1538,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
                         return;
                     }
                 } else {
-                    constant = convertInput(constant, constDefault.type, row.children[k]);
+                    constant = convertInput(row.children[k], constDefault.type,);
                 }
                 constants[constDefault.name] = constant, i++;
             }
@@ -1421,7 +1546,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
         openTool.before();
         if (abort) { return; }
         for (i = 0; i < eventsDiv.childElementCount; i++) {
-            const event = eventsDiv.children[i], func = getFirstName(openTool.functions, event.firstElementChild.innerText);
+            const event = eventsDiv.children[i], func = getFirstByName(openTool.functions, event.firstElementChild.innerText);
             let params = [];
             for (let j = 2; j < event.childElementCount - 1; j++) {
                 const row = event.children[j];
@@ -1429,9 +1554,10 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
                     let param = row.children[k].value, paramDefault = func.params[params.length];
                     func.constOverride && (paramDefault = constants[func.name].params[params.length]),
                         row.children[k].style.backgroundColor = "";
-                    if (param == "" || row.children[k].style.display == "none") {
+                    if (param == "" && row.children[k].style.display == "") {
                         param = undefined;
-                        if (paramDefault.required && row.children[k].style.display == "") {
+                        if (paramDefault.required) {
+                            console.log(row.children[k - 1].innerText, row.children[k])
                             row.children[k].style.backgroundColor = "red", resultDiv.innerText = "Empty required input",
                                 runButton.style.backgroundColor = "red",
                                 setTimeout(() => {
@@ -1440,7 +1566,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
                             return;
                         }
                     } else {
-                        param = convertInput(param, paramDefault.type, row.children[k]);
+                        param = convertInput(row.children[k], paramDefault.type,);
                     }
                     params.push(param);
                 }
@@ -1474,5 +1600,17 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
             setTimeout(() => {
                 copyButton2.style.backgroundColor = "";
             }, 1000);
+    },
+    copyButton3.onclick = () => {
+        let save = saveInput();
+        navigator.clipboard.writeText(JSON.stringify(save)),
+            copyButton3.style.backgroundColor = "green",
+            console.log("Copied into clipboard!", save),
+            setTimeout(() => {
+                copyButton3.style.backgroundColor = "";
+            }, 1000);
+    },
+    pasteButton.onclick = () => {
+        navigator.clipboard.readText().then((string) => { loadInput(string) }, (e) => { throw e; });
     },
     document.addEventListener("change", updateFullVisibility);
