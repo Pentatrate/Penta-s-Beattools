@@ -17,6 +17,7 @@ eventually?
 6. Beatblock Particle Generator
 7. [Beatblock Fake Block Generator](#beatblock-fake-block-generator) (includes Sides)
 8. Beatblock BPM Changer
+9. Beatblock Total Hit Finder
 
 ## How to use (Penta's Beattools)
 Will get updated to include other tools.
