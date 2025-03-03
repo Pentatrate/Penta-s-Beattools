@@ -1081,11 +1081,15 @@ const version = "3.1",
             { name: "chart", desc: "The chart file that your variant uses", type: "json", required: false, newRow: true }
         ],
         before: () => {
-            for (let i = 0; i < constants.chart.length; i++) {
-                let event = constants.chart[i]; typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+            if (constants.chart != undefined) {
+                for (let i = 0; i < constants.chart.length; i++) {
+                    let event = constants.chart[i]; typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+                }
             }
-            for (let i = 0; i < constants.level.events.length; i++) {
-                let event = constants.level.events[i]; typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+            if (constants.level != undefined) {
+                for (let i = 0; i < constants.level.events.length; i++) {
+                    let event = constants.level.events[i]; typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+                }
             }
             resultDiv.innerText = JSON.stringify(constants.level),
                 resultDiv2.innerText = JSON.stringify(constants.chart);
