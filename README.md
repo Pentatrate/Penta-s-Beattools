@@ -18,6 +18,7 @@ eventually?
 7. [Beatblock Fake Block Generator](#beatblock-fake-block-generator) (includes Sides)
 8. Beatblock BPM Changer
 9. Beatblock Total Hit Finder
+10. Beatblock Level Fixer (WIP)
 
 ## How to use (Penta's Beattools)
 Will get updated to include other tools.
@@ -31,7 +32,7 @@ Will get updated to include other tools.
 	There is no official way to download a folder directly as far as I know, but it's just 3 files and two are in a subfolder.
 
 		Alternative: Download all files in this repository and unzip them. (Click on Download ZIP)
-		
+
 		![image](https://github.com/user-attachments/assets/f4a94209-4fa8-47d7-ac4f-e76db634b2bf)
 
 2. Select the tool you want to use.

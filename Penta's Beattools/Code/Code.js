@@ -1,4 +1,4 @@
-const version = "3.0",
+const version = "3.1",
     toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
     pasteButton = document.querySelector("#pastePrompt"),
@@ -238,20 +238,23 @@ const version = "3.0",
                     console.log('If neither "Done!", "Unfinished." or "Aborted." gets logged for a while, an error has occured');
                 const belongsToChart = ["block", "hold", "inverse", "mine", "mineHold", "side", "extraTap"];
                 let selectedTag, tempTagEvents, needsChartData, status = "untaggingLevel",
-                    runTagEventsUntagged = 0, loop = 0,
-                    untaggedEvents = [], untaggedRunTagEvents = [], untaggingTags = [], untaggedTags = [], playSongEvents = [];
+                    eventsUntagged = 0, runTagEventsUntagged = 0, loop = 0,
+                    untaggedRunTagEvents = [], untaggingTags = [], untaggedTags = [], playSongEvents = [];
                 untagAll(0);
 
                 function untagAll(recursion) {
                     if (recursion > /*1*/0) { // 0 for now, will add 1 later
-                        console.log("The maximum recursion limit (1) has been reached. Something broke."),
+                        constants.level.events.push(...untaggedRunTagEvents),
+                            console.log("The maximum recursion limit (1) has been reached. Something broke. (No it didnt I set it that way because this was what I needed at that time)"),
                             status = "unfinished",
                             endRecursion(recursion);
                         return;
                     }
                     console.log(`Starting recursion ${recursion}.`),
                         loop = 0;
-                    while ((selectedTag = (recursion == 0 ? constants.level.events : untaggedRunTagEvents).reduce((tag, event) => { return tag ? tag : event.type == "tag" && event.tag != "" && !untaggingTags.includes(event.tag) && event.tag }, false)) !== false && loop <= 100) { // Check for valid Run Tag Event
+                    while (loop <= 100) { // Check for valid Run Tag Event
+                        selectedTag = (recursion == 0 ? constants.level.events : untaggedRunTagEvents).reduce((tag, event) => { return tag !== false ? tag : (event.type == "tag" && event.tag != "" && !untaggingTags.includes(event.tag) && event.tag) }, false);
+                        if (selectedTag === false) { break; }
                         // Require Tag Data
                         console.log(`    (Untagging ${selectedTag}): Start untagging.`),
                             untaggingTags.push(selectedTag),
@@ -283,15 +286,18 @@ const version = "3.0",
                             endRecursion(recursion);
                     }
                     function continueUntagging(selectedTag2, tagEvents, needsChartData2) {
+                        const tags = constants.level.events.filter(event => !(event.type != "tag" || event.tag != selectedTag2)).length;
+                        let untaggedEvents = [];
                         // Untagging
                         for (let index = 0; index < constants.level.events.length; index++) {
                             const event = constants.level.events[index];
-                            runTagEventsUntagged++;
                             if (event.type != "tag" || event.tag != selectedTag2) { continue; }
-                            tempTagEvents = JSON.parse(JSON.stringify(tagEvents)); // Unpointer Code
+                            tempTagEvents = JSON.parse(JSON.stringify(tagEvents)), // Unpointer Code
+                                runTagEventsUntagged++;
                             for (const i in tempTagEvents) {
                                 tempTagEvents[i].time = tagEvents[i].time + event.time;
-                                event.angleOffset && (tempTagEvents[i].angle = tagEvents[i].angle + event.angle);
+                                event.angleOffset && (tempTagEvents[i].angle = tagEvents[i].angle + event.angle),
+                                    eventsUntagged++;
                             }
                             untaggedEvents.push(...tempTagEvents), constants.level.events.splice(index, 1), index--;
                         }
@@ -300,7 +306,7 @@ const version = "3.0",
                             recursion == 0 && (untaggedRunTagEvents.push(...untaggedEvents.filter((event => event.type == "tag")))),
                             needsChartData2 && (constants.chart.push(...untaggedEvents.filter((event => belongsToChart.includes(event.type))))),
                             untaggingTags.splice(untaggingTags.indexOf(selectedTag2), 1),
-                            console.log(`    (Untagging ${selectedTag2}): Untagging complete.`);
+                            console.log(`    (Untagging ${selectedTag2}): Untagging complete (${tags} Run Tag Event(s)).`);
                         // json.delete(`tags/${tag}.json`);
                         if (untaggingTags.length == 0) {
                             if (recursion == 0) {
@@ -332,7 +338,7 @@ const version = "3.0",
                         case "unfinished": console.log("Unfinished. Something may have broken."); break;
                     }
                     // Additional Info
-                    console.log(`Run Tag Events Untagged: ${runTagEventsUntagged}\nTag Events Untagged: ${untaggedTags.join(", ")}\nRecursion depth: ${recursion}`);
+                    console.log(`Run Tag Events Untagged: ${runTagEventsUntagged}\nEvents Untagged: ${eventsUntagged}\nTags Untagged: ${untaggedTags.join(", ")}\nRecursion depth: ${recursion}`);
                 }
             }
         },
@@ -391,6 +397,7 @@ const version = "3.0",
             desc: "Input the contents of all tag files",
             params: [
             ],
+            defaultType: "json",
             function: (...params) => {
                 if (constants.selectTag) {
                     resultDiv.innerText = "Something went wrong: This function shouldnt have been called", abort = true;
@@ -477,7 +484,7 @@ const version = "3.0",
                                     lastAngle = value,
                                     event.type == "hold" && (
                                         holdDir = (randomValue(0, 2) - 0.5) * 2,
-                                        event.angle2 = event.angle + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * holdDir,
+                                        event.angle2 = value + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * holdDir,
                                         lastAngle = event.angle2,
                                         ovlpEvent && (lastDir = holdDir)
                                     );
@@ -517,54 +524,63 @@ const version = "3.0",
                                 lastEvent = event;
                         }); break;
                     case "ready":
-                        const prevEvent = angles.length == 1 && (angles[angles.length - 1].time >= time - constants.closeTime && angles[angles.length - 1]),
+                        const prevEvent = angles.length > 1 && (angles[angles.length - 1].time >= time - constants.closeTime && angles[angles.length - 1]),
                             preverEvent = prevEvent && angles.length == 2 ? angles[angles.length - 2].time >= prevEvent.time - constants.closeTime && angles[angles.length - 2] : undefined,
                             additionalRotations = randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
-                        constants.chart.filter(event => event.type != "extraTap" && (event.time == time || (["hold", "mineHold"].includes(event.type) && event.time + event.duration == time))).forEach(event => {
-                            if (lastEvent) {
-                                switch (true) { // Holds ignored, im not insane enough to code that
-                                    case prevEvent: // Blocks too close
-                                        value = lastAngle + closeDir * (preverEvent ? lastDir : randomValue(-0.5, 2) * 2) * (constants.closeBehavior == "relative" ? (event.time - prevEvent.time) / constants.closeTime : 1); break;
-                                    default:
-                                        if (angles.length >= 1 && angles[angles.length - 1].time == time) {
-                                            value = angles[angles.length - 1].angle;
-                                        } else {
-                                            value = forcedAngles.reduce((prev, angle) => prev || angle.time == time, false) ? forcedAngles.reduce((prev, angle) => prev || (angle.time == time && angle), false).angle : normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist)),
-                                                angles.push({ time: time, angle: value });
-                                        } break;
+                        lastDir = ((compareAnglesLR(preverEvent?.angle, prevEvent?.angle) == "left") - 0.5) * 2,
+                            constants.chart.filter(event => event.type != "extraTap" && (event.time == time || (["hold", "mineHold"].includes(event.type) && event.time + event.duration == time))).forEach(event => {
+                                if (lastEvent) {
+                                    switch (true) { // Holds ignored, im not insane enough to code that
+                                        case prevEvent != false: // Blocks too close
+                                            if (angles.length >= 1 && angles[angles.length - 1].time == time) {
+                                                value = angles[angles.length - 1].angle;
+                                            } else {
+                                                value = lastAngle + constants.closeDir * (preverEvent != false ? lastDir : randomValue(-0.5, 2) * 2) * (constants.closeBehavior == "relative" ? (time - prevEvent.time) / constants.closeTime : 1), console.log(time, "e", lastDir, lastAngle, value),
+                                                    angles.push({ time: time, angle: value });
+                                            } break;
+                                        default:
+                                            if (angles.length >= 1 && angles[angles.length - 1].time == time) {
+                                                value = angles[angles.length - 1].angle;
+                                            } else {
+                                                value = forcedAngles.reduce((prev, angle) => prev || angle.time == time, false) ? forcedAngles.reduce((prev, angle) => prev || (angle.time == time && angle), false).angle : normalizeAngle(newAngle(constants.snap, constants.minDist, constants.maxDist)),
+                                                    angles.push({ time: time, angle: value });
+                                            } break;
+                                    }
+                                } else { // First Angle
+                                    lastAngle = value,
+                                        angles.push({ time: time, angle: value });
                                 }
-                            } else {
-                                lastAngle = value,
-                                    angles.push({ time: time, angle: value });
-                            }
-                            if (event.time == time) {
-                                event.angle = normalizeAngle(event.angle - 90 + value);
-                                if (constants.forceDefaultHoldGeneration && ["hold", "mineHold"].includes(event.type)) {
-                                    !forcedAngles.reduce((prev, angle) => prev || angle.time == time + event.duration, false) && (forcedAngles.push({ time: time + event.duration, angle: value + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * (randomValue(0, 2) - 0.5) * 2 }));
+                                if (event.time == time) {
+                                    if (["hold", "mineHold"].includes(event.type) && event.duration == 0) {
+                                        event.angle = event.angle - 90 + value,
+                                            event.angle2 = event.angle2 - 90 + value;
+                                    } else {
+                                        event.angle = normalizeAngle(event.angle - 90 + value);
+                                    }
+                                    if (constants.forceDefaultHoldGeneration && ["hold", "mineHold"].includes(event.type)) {
+                                        !forcedAngles.reduce((prev, angle) => prev || angle.time == time + event.duration, false) && (forcedAngles.push({ time: time + event.duration, angle: value + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * (randomValue(0, 2) - 0.5) * 2 }));
+                                    }
+                                } else {
+                                    event.angle2 = normalizeAngle(event.angle2 - 90 + value - event.angle),
+                                        event.angle2 = event.angle + event.angle2 - (event.angle2 > 180 ? 360 : 0),
+                                        event.angle2 += constants.holdsRotateTogether ? additionalRotations : randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
                                 }
-                            } else {
-                                event.angle2 = normalizeAngle(event.angle2 - 90 + value - event.angle),
-                                    event.angle2 = event.angle + event.angle2 - (event.angle2 > 180 ? 360 : 0),
-                                    event.angle2 += constants.holdsRotateTogether ? additionalRotations : randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
-                            }
-                            lastEvent = event;
-                        }),
-                            lastDir = ((compareAnglesLR(lastAngle, value) == "left") - 0.5) * 2,
-                            lastAngle = value; break;
+                                lastEvent = event;
+                            }), lastAngle = value; break;
                 }
             }
             if (constants.type == "ready" && constants.holdReorder) {
                 let order, order2;
                 angles.forEach(angle => {
                     order = constants.chart.filter(event => event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration) == angle.time && ["hold", "mineHold"].includes(event.type)).sort((a, b) => normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? a.angle : a.angle2) - angle.angle) - normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? b.angle : b.angle2) - angle.angle));
-                    console.log(order.map(event => (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) + " " + normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) - angle.angle)).join("\n") + "\n" + angle.angle, angle.time),
-                        constants.chart.filter(event => ["hold", "mineHold"].includes(event.type) && event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration) == angle.time).forEach(event => {
-                            order2 = order,
-                                event.angle2 > event.angle && (order2.reverse()),
-                                ["closestStart", "closestEnd"].includes(constants.holdReorder) && (order2.reverse()),
-                                event.order = order2.indexOf(event);
-                            console.log(event.order, event.angle2 > event.angle, event.angle2, event.angle)
-                        });
+                    // console.log(order.map(event => (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) + " " + normalizeAngle(180 + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? event.angle : event.angle2) - angle.angle)).join("\n") + "\n" + angle.angle, angle.time),
+                    constants.chart.filter(event => ["hold", "mineHold"].includes(event.type) && event.time + (["furthestStart", "closestStart"].includes(constants.holdReorder) ? 0 : event.duration) == angle.time).forEach(event => {
+                        order2 = order,
+                            event.angle2 > event.angle && (order2.reverse()),
+                            ["closestStart", "closestEnd"].includes(constants.holdReorder) && (order2.reverse()),
+                            event.order = order2.indexOf(event);
+                        // console.log(event.order, event.angle2 > event.angle, event.angle2, event.angle)
+                    });
                 })
             }
             events = constants.chart
@@ -659,7 +675,7 @@ const version = "3.0",
                         radius = randomValue(constants.minRadius, constants.maxRadius - constants.minRadius + 1),
                         x += sin(180 - lastAngle) * radius, y += cos(180 - lastAngle) * radius,
                         lastAngle += 180, lastDir *= -1,
-                        goal = getDist(x, y) > constants.forceDist ? -90 + getAngle(x, y) : lastAngle + randomValue(angleDiffDefault / radius * blockTimeDiff * 2, 360 - angleDiffDefault / radius * blockTimeDiff * 4) * lastDir,
+                        goal = getD(x, y) > constants.forceDist ? -90 + getA(x, y) : lastAngle + randomValue(angleDiffDefault / radius * blockTimeDiff * 2, 360 - angleDiffDefault / radius * blockTimeDiff * 4) * lastDir,
                         events.push(
                             { time: lastBlock + (0.5 - constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "ease", var: "p.x", value: 300 + x },
                             { time: lastBlock + (0.5 - constants.turnLeeway / 2) * blockTimeDiff, angle: 0, type: "ease", var: "p.y", value: 180 + y },
@@ -677,9 +693,9 @@ const version = "3.0",
             circles.forEach((circle, i) => {
                 lastAngle = circle.startAngle;
                 for (let i = circle.start; i <= circle.end;) {
-                    const dist = getDist(lastX - (circle.x + cos(-90 + lastAngle) * circle.r), lastY - (circle.y + sin(-90 + lastAngle) * circle.r)),
+                    const dist = getD(lastX - (circle.x + cos(-90 + lastAngle) * circle.r), lastY - (circle.y + sin(-90 + lastAngle) * circle.r)),
                         x2 = 300 + circle.x + cos(-90 + lastAngle) * circle.r, y2 = 180 + circle.y + sin(-90 + lastAngle) * circle.r,
-                        r2 = -90 + getAngle(lastX - (circle.x + cos(-90 + lastAngle) * circle.r), lastY - (circle.y + sin(-90 + lastAngle) * circle.r));
+                        r2 = -90 + getA(lastX - (circle.x + cos(-90 + lastAngle) * circle.r), lastY - (circle.y + sin(-90 + lastAngle) * circle.r));
                     let index = lines.indexOf(lines.filter(time => time < i - constants.lineLength)[0]);
                     (index === -1 ? (index = lines.length, lines.push(i)) : lines[index] = i),
                         events.push({
@@ -698,9 +714,9 @@ const version = "3.0",
                         i += lineSegmentTimeDiff;
                     if (i > circle.end && i - lineSegmentTimeDiff != circle.end) {
                         console.log(i)
-                        const dist = getDist(lastX - (circle.x + cos(-90 + circle.endAngle) * circle.r), lastY - (circle.y + sin(-90 + circle.endAngle) * circle.r)),
+                        const dist = getD(lastX - (circle.x + cos(-90 + circle.endAngle) * circle.r), lastY - (circle.y + sin(-90 + circle.endAngle) * circle.r)),
                             x2 = 300 + circle.x + cos(-90 + circle.endAngle) * circle.r, y2 = 180 + circle.y + sin(-90 + circle.endAngle) * circle.r,
-                            r2 = -90 + getAngle(lastX - (circle.x + cos(-90 + circle.endAngle) * circle.r), lastY - (circle.y + sin(-90 + circle.endAngle) * circle.r));
+                            r2 = -90 + getA(lastX - (circle.x + cos(-90 + circle.endAngle) * circle.r), lastY - (circle.y + sin(-90 + circle.endAngle) * circle.r));
                         index = lines.indexOf(lines.filter(time => time < i - constants.lineLength)[0]);
                         (index === -1 ? (index = lines.length, lines.push(i)) : lines[index] = i),
                             events.push({
@@ -824,7 +840,7 @@ const version = "3.0",
                         case "point": x = x1, y = y1; break;
                         case "linePoints":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            const angle2 = getAngle(x2 - x1, y2 - y1), dist = getDist(x2 - x1, y2 - y1);
+                            const angle2 = getA(x2 - x1, y2 - y1), dist = getD(x2 - x1, y2 - y1);
                             x = x1 + cos(angle2) * dist * random, y = y1 + sin(angle2) * dist * random;
                             break;
                         case "lineDir":
@@ -836,9 +852,9 @@ const version = "3.0",
                             x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); break;
                         case "circlePoints":
                             if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getDist((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
+                            do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getD((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
                         case "circleSize":
-                            do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getDist((x - x1) / width, (y - y1) / height) > 0.5); break;
+                            do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getD((x - x1) / width, (y - y1) / height) > 0.5); break;
                         default: abort = true; return;
                     }
                     if (spriteRotationFollowsMovement) { // r
@@ -1033,25 +1049,46 @@ const version = "3.0",
             { name: "barelies", desc: "", type: "number", required: true, showWhenParam: "extra", showWhenValue: ["maxMisses", "grade"] }
         ],
         before: () => {
-            let totalHits = constants.chart.reduce((totalHits, event) => {
+            let mineBeats = [], totalHits = constants.chart.reduce((totalHits, event) => {
                 // if (event.time > constants.chart.filter(event => event.type == "showResults").sort((a, b) => a.time - b.time)[0].time + 4.5) return totalHits; // I think the game also doesnt check for this
                 switch (event.type) {
                     case "block": return totalHits + 1 + Boolean(event.tap);
-                    case "hold": return totalHits + 1 + Boolean(event.startTap) + 1 + Boolean(event.endTap) // + (event.time + event.duration > constants.chart.filter(event => event.type == "showResults").sort((a, b) => a.time - b.time)[0].time + 4.5 ? 0 : 1 + Boolean(event.endTap)); // I think the game also doesnt check for this
+                    case "hold": return totalHits + 1 + Boolean(event.startTap) + 1 + Boolean(event.endTap); // + (event.time + event.duration > constants.chart.filter(event => event.type == "showResults").sort((a, b) => a.time - b.time)[0].time + 4.5 ? 0 : 1 + Boolean(event.endTap)); // I think the game also doesnt check for this
                     case "inverse": return totalHits + 1 + Boolean(event.tap);
-                    case "mine": return totalHits + 1;
-                    case "mineHold": return totalHits + 1;
+                    case "mine": !mineBeats.includes(event.time) && (mineBeats.push(event.time)); return totalHits;
+                    case "mineHold": !mineBeats.includes(event.time + event.duration) && (mineBeats.push(event.time + event.duration)); return totalHits;
                     case "side": return totalHits + 1 + Boolean(event.tap);
                     case "extraTap": return totalHits + 1;
                 }
             }, 0);
-            resultDiv.innerText = totalHits;
+            console.log(mineBeats, mineBeats.length)
+            resultDiv.innerText = totalHits + mineBeats.length;
             switch (constants.extra) {
                 case "maxInaccuracies": resultDiv2.innerText = Math.floor(totalHits * (1 - getFirstByName(grades, constants.grade).acc / 100) * 4) / 4; break;
                 case "maxMisses": resultDiv2.innerText = Math.floor(totalHits * (1 - getFirstByName(grades, constants.grade).acc / 100) - constants.barelies / 4); break;
                 case "maxBarelies": resultDiv2.innerText = Math.floor(totalHits * (1 - getFirstByName(grades, constants.grade).acc / 100) * 4 - constants.misses * 4); break;
-                case "grade": let acc = (1 - (constants.misses + constants.barelies / 4) / totalHits) * 100; resultDiv2.innerText = [grades.sort((a, b) => a.acc - b.acc).reverse().reduce((prev, grade, i) => prev || ((acc >= grade.acc || i == grades.length - 1) && grade.name), false), " (", Math.floor(acc * 100) / 100, "%)"].join(""); break;
+                case "grade": let acc = (1 - (constants.misses + constants.barelies / 4) / totalHits) * 100; resultDiv2.innerText = [grades.sort((a, b) => a.acc - b.acc).reverse().reduce((prev, grade, i) => prev || ((acc >= grade.acc || i == grades.length - 1) && grade.name), false), " (", Math.floor(acc * 1e4) / 1e4, "%)"].join(""); break;
             }
+        },
+        after: () => { },
+        functions: [],
+        dontUseEvents: true
+    }, { // levelFixer
+        name: "levelFixer",
+        desc: "TEMP",
+        constants: [
+            { name: "level", desc: "The level file that your variant uses", type: "json", required: false, newRow: true },
+            { name: "chart", desc: "The chart file that your variant uses", type: "json", required: false, newRow: true }
+        ],
+        before: () => {
+            for (let i = 0; i < constants.chart.length; i++) {
+                let event = constants.chart[i]; typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+            }
+            for (let i = 0; i < constants.level.events.length; i++) {
+                let event = constants.level.events[i]; typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+            }
+            resultDiv.innerText = JSON.stringify(constants.level),
+                resultDiv2.innerText = JSON.stringify(constants.chart);
         },
         after: () => { },
         functions: [],
@@ -1085,15 +1122,20 @@ let events = [], lastAngle = 0, lastDir = 1;
 function normalizeAngle(d) { return ((d % 360) + 360) % 360; }
 function compareAnglesLR(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (180 > tempDiff && tempDiff >= 0 ? "left" : "right"); }
 function compareAnglesFB(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (90 > tempDiff || tempDiff >= 270 ? "front" : "back"); }
-function getAngle(x, y) { return Math.atan2(y, x) / Math.PI * 180; }
-function getDist(x, y) { return Math.hypot(x, y); }
+function getA(x, y) { return Math.atan2(y, x) / Math.PI * 180; }
+function getD(x, y) { return Math.hypot(x, y); }
 function cos(d) { return Math.cos(d * (Math.PI / 180)); }
 function sin(d) { return Math.sin(d * (Math.PI / 180)); }
 
 function randomValue(min, range) { return Math.floor(Math.random() * (range)) + min; }
-function newAngle(snap, minDist, maxDist) { let angle; do { angle = randomValue(0, snap) * 360 / snap; } while ((minDist !== undefined && (normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist))); return angle; }
+function newAngle(snap, minDist, maxDist) {
+    snap = 360 / snap; let angle2 = []; for (let i = 0; i < 360; i += snap) { angle2.push(i); }
+    angle2 = angle2.filter(angle => !((minDist !== undefined && (normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist))));
+    /* do { angle2 = randomValue(0, 360 / snap) * snap; } while ((minDist !== undefined && (normalizeAngle(angle2 - lastAngle) < minDist || normalizeAngle(angle2 - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle2 - lastAngle) > maxDist && normalizeAngle(angle2 - lastAngle) < 360 - maxDist))); */
+    return angle2[Math.floor(Math.random() * angle2.length)];
+}
 
-function randomAngle(snap, minAngle, maxAngle) { return randomValue(minAngle / 360 * snap, (maxAngle - minAngle) / 360 * snap) * 360 / snap; }
+function randomAngle(snap, minAngle, maxAngle) { snap = 360 / snap; return randomValue(Math.ceil(minAngle / snap), Math.floor((maxAngle - minAngle) / snap)) * snap; }
 function average(...args) { return args.reduce((prev, current) => prev + current, 0) / args.length }
 function randomFromArray(array) { return array[randomValue(0, array.length)]; }
 
@@ -1314,17 +1356,7 @@ function addEvent(func) {
         eventDiv.classList.add("subfield"),
         eventsDiv.appendChild(eventDiv);
     func.params.forEach(param => {
-        if (param.newRow) {
-            const row = document.createElement("div");
-            row.classList.add("row"),
-                eventsDiv.lastElementChild.appendChild(row);
-        }
-        const inputDiv = addParamInput(param), label = document.createElement("label");
-        param.required && (inputDiv.classList.add("animColor"), inputDiv.classList.add("required"), label.classList.add("required")),
-            label.innerText = param.dontBeautifyName ? param.name : beautifyText(param.name),
-            label.title = param.desc,
-            inputDiv.classList.add("subsubfield"),
-            eventsDiv.lastElementChild.lastElementChild.append(label, inputDiv);
+        addParam(param);
     });
     const row = document.createElement("div"), removeButton = document.createElement("button"), moveUpButton = document.createElement("button"), moveDownButton = document.createElement("button");
     row.classList.add("row"),
@@ -1355,6 +1387,19 @@ function addEvent(func) {
     }
     updatePosition(),
         updateFullVisibility();
+}
+function addParam(param) {
+    if (param.newRow) {
+        const row = document.createElement("div");
+        row.classList.add("row"),
+            eventsDiv.lastElementChild.appendChild(row);
+    }
+    const inputDiv = addParamInput(param), label = document.createElement("label");
+    param.required && (inputDiv.classList.add("animColor"), inputDiv.classList.add("required"), label.classList.add("required")),
+        label.innerText = param.dontBeautifyName ? param.name : beautifyText(param.name),
+        label.title = param.desc,
+        inputDiv.classList.add("subsubfield"),
+        eventsDiv.lastElementChild.lastElementChild.append(label, inputDiv);
 }
 function loadTool(toolName) {
     openTool = getFirstByName(tools, toolName);
@@ -1430,12 +1475,12 @@ function updateFullVisibility() {
         }
     }
     function updateVisibility(element, i, defaultValues) {
-        if (defaultValues[(i - 1) / 2].hideWhenParam) {
+        if (defaultValues[(i - 1) / 2]?.hideWhenParam) {
             let checkElement = elements[defaultValues.indexOf(getFirstByName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam)) * 2 + 1];
             // console.log(element, defaultValues[(i - 1) / 2].hideWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type, checkElement))
             element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].hideWhenValue.includes(convertInput(checkElement, getFirstByName(defaultValues, defaultValues[(i - 1) / 2].hideWhenParam).type)) ? "" : "none"
         }
-        if (defaultValues[(i - 1) / 2].showWhenParam) {
+        if (defaultValues[(i - 1) / 2]?.showWhenParam) {
             let checkElement = elements[defaultValues.indexOf(getFirstByName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam)) * 2 + 1];
             // console.log(element, defaultValues[(i - 1) / 2].showWhenValue, convertInput(checkElement.value, getFirstName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type, checkElement))
             element.style.display = checkElement.style.display == "none" || !defaultValues[(i - 1) / 2].showWhenValue.includes(convertInput(checkElement, getFirstByName(defaultValues, defaultValues[(i - 1) / 2].showWhenParam).type)) ? (defaultValues[(i - 1) / 2].hideWhenParam ? element.style.display : "none") : ""
@@ -1457,7 +1502,7 @@ function saveInput() {
         for (let k = 2; k < event.childElementCount - 1; k++) {
             const row = event.children[k];
             for (let l = 1; l < row.childElementCount; l += 2) {
-                save.events[save.events.length - 1].params.push(convertInput(row.children[l], getFirstByName(openTool.functions, event.firstElementChild.innerText).params[save.events[save.events.length - 1].params.length].type, true));
+                save.events[save.events.length - 1].params.push(convertInput(row.children[l], getFirstByName(openTool.functions, event.firstElementChild.innerText).params[save.events[save.events.length - 1].params.length]?.type || getFirstByName(openTool.functions, event.firstElementChild.innerText).defaultType, true));
             }
         }
     }
@@ -1482,7 +1527,8 @@ function loadInput(data) {
         }
     }
     data.events.forEach(event => {
-        addEvent(getFirstByName(openTool.functions, event.name)), i = 0;
+        const event2 = getFirstByName(openTool.functions, event.name);
+        addEvent(event2), i = 0;
         for (let j = 2; j < eventsDiv.lastElementChild.childElementCount - 1; j++) {
             const row = eventsDiv.lastElementChild.children[j];
             for (let k = 1; k < row.childElementCount; k += 2) {
@@ -1498,7 +1544,6 @@ function loadInput(data) {
         }
     }), updateFullVisibility();
 }
-
 
 // Init
 resultDiv.innerText = "Hover over some tool, constant, event and parameter names to get tooltips\nThis is version " + version,
