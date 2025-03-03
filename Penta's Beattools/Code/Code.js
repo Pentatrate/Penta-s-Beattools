@@ -1083,16 +1083,16 @@ const version = "3.1",
         before: () => {
             if (constants.chart != undefined) {
                 for (let i = 0; i < constants.chart.length; i++) {
-                    let event = constants.chart[i]; event.angle === undefined || typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+                    let event = constants.chart[i]; (event.angle === undefined || typeof event.angle != "number" || Number.isNaN(event.angle)) && (event.angle = 0);
                 }
             }
             if (constants.level != undefined) {
                 for (let i = 0; i < constants.level.events.length; i++) {
-                    let event = constants.level.events[i]; event.angle === undefined || typeof event.angle != "number" || Number.isNaN(event.angle) && (event.angle = 0);
+                    let event = constants.level.events[i]; (event.angle === undefined || typeof event.angle != "number" || Number.isNaN(event.angle)) && (event.angle = 0);
                 }
             }
-            resultDiv.innerText = JSON.stringify(constants.level),
-                resultDiv2.innerText = JSON.stringify(constants.chart);
+            constants.level != undefined && (resultDiv.innerText = JSON.stringify(constants.level)),
+                constants.chart != undefined && (resultDiv2.innerText = JSON.stringify(constants.chart));
         },
         after: () => { },
         functions: [],
