@@ -1,4 +1,4 @@
-const version = "3.1",
+const version = "4.0",
     toolSelect = document.querySelector("#selectTool"),
     toolButton = document.querySelector("#changeTool"),
     pasteButton = document.querySelector("#pastePrompt"),
@@ -526,7 +526,7 @@ const version = "3.1",
                     case "ready":
                         const prevEvent = angles.length > 1 && (angles[angles.length - 1].time >= time - constants.closeTime && angles[angles.length - 1]),
                             preverEvent = prevEvent && angles.length == 2 ? angles[angles.length - 2].time >= prevEvent.time - constants.closeTime && angles[angles.length - 2] : undefined,
-                            additionalRotations = randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
+                            additionalRotations = {};
                         lastDir = ((compareAnglesLR(preverEvent?.angle, prevEvent?.angle) == "left") - 0.5) * 2,
                             constants.chart.filter(event => event.type != "extraTap" && (event.time == time || (["hold", "mineHold"].includes(event.type) && event.time + event.duration == time))).forEach(event => {
                                 if (lastEvent) {
@@ -560,10 +560,11 @@ const version = "3.1",
                                     if (constants.forceDefaultHoldGeneration && ["hold", "mineHold"].includes(event.type)) {
                                         !forcedAngles.reduce((prev, angle) => prev || angle.time == time + event.duration, false) && (forcedAngles.push({ time: time + event.duration, angle: value + randomAngle(constants.snap, constants.minHoldDir * event.duration, constants.maxHoldDir * event.duration) * event.duration * (randomValue(0, 2) - 0.5) * 2 }));
                                     }
-                                } else {
-                                    event.angle2 = normalizeAngle(event.angle2 - 90 + value - event.angle),
+                                } else if (angles.some((angle) => angle.time == event.time)) {
+                                    additionalRotations["" + event.duration] === undefined && (additionalRotations["" + event.duration] = randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360)
+                                    event.angle2 = normalizeAngle(/* event.angle2 - 90 + value - event.angle */ value - angles.filter((angle) => angle.time == event.time)[0].angle),
                                         event.angle2 = event.angle + event.angle2 - (event.angle2 > 180 ? 360 : 0),
-                                        event.angle2 += constants.holdsRotateTogether ? additionalRotations : randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
+                                        event.angle2 += constants.holdsRotateTogether ? additionalRotations["" + event.duration] : randomValue(constants.minAdditionalRotations, constants.maxAdditionalRotations - constants.minAdditionalRotations) * randomValue(-0.5, 2) * 2 * 360;
                                 }
                                 lastEvent = event;
                             }), lastAngle = value; break;
@@ -758,9 +759,13 @@ const version = "3.1",
             name: "particleEmitter",
             desc: "Emits particles",
             params: [
-                { name: "emitterStart", desc: "", type: "number", required: false, newRow: true },
-                { name: "emitterEnd", desc: "", type: "number", required: true },
-                { name: "particlesPerBeat", desc: "", type: "number", required: true },
+                { name: "spawnTiming", desc: "Whether to spawn particles over time or burst them (spawn lots at once)", type: "select", values: ["particlesPerBeat", "particleeveryBeat", "particleBurstRepeat"], required: true, newRow: true },
+                { name: "emitterStart", desc: "", type: "number", required: false },
+                { name: "emitterEnd", desc: "", type: "number", required: true, showWhenParam: "spawnTiming", showWhenValue: ["particlesPerBeat", "particleEveryBeat"] },
+                { name: "particlesPerBeat", desc: "", type: "number", required: true, showWhenParam: "spawnTiming", showWhenValue: ["particlesPerBeat", "particleEveryBeat"] },
+                { name: "repeatAmount", desc: "Work as in the game with repeating eases", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particleBurstRepeat"] },
+                { name: "repeatDelay", desc: "Time between particles spawning", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particleEveryBeat", "particleBurstRepeat"] },
+                { name: "particleBurstAmount", desc: "How many particle per burst", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particleBurstRepeat"] },
                 { name: "particleDuration1", desc: "The range of how long particles stay", type: "number", required: true, newRow: true },
                 { name: "particleDuration2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
                 { name: "spawnShape", desc: "What shape the particles will generate in\nAll options other than Point will require four parameters\nPoint: Requires X1 and X2\n-Points: Creates a shape between (X1 | Y1) and (X2 | Y2)\n-Size: Creates a shape with middle (X1 | Y1) and width X2 / height Y2\nLine Dir: Creates a line from (X1 | Y1) in the direction X2 with length Y2", type: "select", values: ["point", "linePoints", "lineDir", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"], required: true, newRow: true },
@@ -801,8 +806,11 @@ const version = "3.1",
                 { name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ','\nExamples: '0,1,2,3', '-1', '0,0,0,1'", type: "string", required: false },
                 { name: "parent", desc: "", type: "string", required: false, newRow: true }
             ],
-            function: (emitterStart, emitterEnd, particlesPerBeat, particleDuration1, particleDuration2, spawnShape, x1, y1, x2, y2, angle, length, width, height, spriteRotationFollowsMovement, rotation1, rotation2, spin1, spin2, movementAngle1, movementAngle2, velocity1, velocity2, movementEase, accelerationFactor, accelerationAngle, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, entryDuration, entryAxis, entryEase, exitDuration, exitAxis, exitEase, sprite, ox, oy, colors, parent) => {
+            function: (spawnTiming, emitterStart, emitterEnd, particlesPerBeat, repeatAmount, repeatDelay, particleBurstAmount, particleDuration1, particleDuration2, spawnShape, x1, y1, x2, y2, angle, length, width, height, spriteRotationFollowsMovement, rotation1, rotation2, spin1, spin2, movementAngle1, movementAngle2, velocity1, velocity2, movementEase, accelerationFactor, accelerationAngle, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, entryDuration, entryAxis, entryEase, exitDuration, exitAxis, exitEase, sprite, ox, oy, colors, parent) => {
                 emitterStart === undefined && (emitterStart = 0),
+                    repeatAmount === undefined && (repeatAmount = 0),
+                    repeatDelay === undefined && (repeatDelay = 1),
+                    particleBurstAmount === undefined && (particleBurstAmount = 1),
                     particleDuration2 === undefined && (particleDuration2 = particleDuration1),
                     spriteRotationFollowsMovement === undefined && (spriteRotationFollowsMovement = "random"),
                     rotation1 === undefined && (rotation1 = 0),
@@ -820,117 +828,124 @@ const version = "3.1",
                     entryDuration === undefined && (entryDuration = 0),
                     exitDuration === undefined && (exitDuration = 0),
                     colors = (colors === undefined ? [] : colors.split(",").map(number => Number(number.trim())).filter(number => !isNaN(number) && typeof number == "number")), colors.length == 0 && (colors = [-1]);
+                switch (spawnTiming) {
+                    case "particlesPerBeat": repeatDelay = 1 / particlesPerBeat; break;
+                    case "particleBurstRepeat": emitterEnd = repeatDelay * (repeatAmount + 1); break;
+                }
                 let duration, x, y, spin, dir, v, r, sStart, sEnd, color, random;
-                for (i = emitterStart; i <= emitterEnd; i += 1 / particlesPerBeat) {
-                    // duration, dir, v, s, color
-                    duration = randomValue(particleDuration1, particleDuration2 - particleDuration1),
-                        spin = randomValue(spin1, spin2 - spin1),
-                        dir = randomValue(movementAngle1, movementAngle2 - movementAngle1),
-                        v = randomValue(velocity1, velocity2 - velocity1),
-                        sStart = randomValue(scaleStart1, scaleStart2 - scaleStart1),
-                        color = randomFromArray(colors),
-                        random = Math.random();
-                    // startIndex
-                    const start = i, end = i + (accelerationFactor ? particleDuration2 : duration);
-                    let freeIndex = particles.indexOf(particles.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
-                    freeIndex == -1 && (freeIndex = particles.length, particles.push([])),
-                        startOrder = 0, endOrder = 0,
-                        particles[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder });
-                    switch (spawnShape) { // x, y
-                        case "point": x = x1, y = y1; break;
-                        case "linePoints":
-                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            const angle2 = getA(x2 - x1, y2 - y1), dist = getD(x2 - x1, y2 - y1);
-                            x = x1 + cos(angle2) * dist * random, y = y1 + sin(angle2) * dist * random;
-                            break;
-                        case "lineDir":
-                            x = x1 + cos(-90 + angle) * length * random, y = y1 + sin(-90 + angle) * length * random; break;
-                        case "rectanglePoints":
-                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
-                        case "rectangleSize":
-                            x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); break;
-                        case "circlePoints":
-                            if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-                            do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getD((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
-                        case "circleSize":
-                            do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getD((x - x1) / width, (y - y1) / height) > 0.5); break;
-                        default: abort = true; return;
+                for (i = emitterStart; i <= emitterEnd; i += repeatDelay) {
+                    for (let j = 0; j < particleBurstAmount; j++) {
+                        // duration, dir, v, s, color
+                        duration = randomValue(particleDuration1, particleDuration2 - particleDuration1, "none"),
+                            spin = randomValue(spin1, spin2 - spin1, "none"),
+                            dir = randomValue(movementAngle1, movementAngle2 - movementAngle1, "none"),
+                            v = randomValue(velocity1, velocity2 - velocity1, "none"),
+                            sStart = randomValue(scaleStart1, scaleStart2 - scaleStart1, "none"),
+                            color = randomFromArray(colors),
+                            random = Math.random();
+                        console.log(spin)
+                        // startIndex
+                        const start = i, end = i + (accelerationFactor ? particleDuration2 : duration);
+                        let freeIndex = particles.indexOf(particles.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+                        freeIndex == -1 && (freeIndex = particles.length, particles.push([])),
+                            startOrder = 0, endOrder = 0,
+                            particles[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder });
+                        switch (spawnShape) { // x, y
+                            case "point": x = x1, y = y1; break;
+                            case "linePoints":
+                                if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                                const angle2 = getA(x2 - x1, y2 - y1), dist = getD(x2 - x1, y2 - y1);
+                                x = x1 + cos(angle2) * dist * random, y = y1 + sin(angle2) * dist * random;
+                                break;
+                            case "lineDir":
+                                x = x1 + cos(-90 + angle) * length * random, y = y1 + sin(-90 + angle) * length * random; break;
+                            case "rectanglePoints":
+                                if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                                x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
+                            case "rectangleSize":
+                                x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); break;
+                            case "circlePoints":
+                                if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
+                                do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getD((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
+                            case "circleSize":
+                                do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getD((x - x1) / width, (y - y1) / height) > 0.5); break;
+                            default: abort = true; return;
+                        }
+                        if (spriteRotationFollowsMovement) { // r
+                            r = dir; // NOT YET
+                        } else {
+                            r = randomValue(rotation1, rotation2 - rotation1, "none");
+                        }
+                        switch (scaleBehavior) { // s
+                            case "random": sEnd = randomValue(scaleEnd1, scaleEnd2 - scaleEnd1, "none"); break;
+                            case "relative": sEnd = (sStart - scaleStart1) / (scaleStart2 - scaleStart1) * (scaleEnd2 - scaleEnd1) + scaleEnd1; break;
+                            default: break;
+                        }
+                        events.push({
+                            time: i, angle: 0, type: "deco", order: 0, hide: true,
+                            id: particlePrefix + "_" + freeIndex + "_normal", parentid: parent,
+                            x: x, y: y, r: 0
+                        }, {
+                            time: i, angle: 0, type: "deco", order: 1,
+                            id: particlePrefix + "_" + freeIndex + "_normal",
+                            x: x + cos(-90 + dir) * v * duration, y: y + sin(-90 + dir) * v * duration,
+                            duration: duration, ease: movementEase
+                        }, {
+                            time: i, angle: 0, type: "deco", order: 2, hide: false,
+                            id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (accelerationFactor ? "_gravity" : "_normal"),
+                            sprite: sprite, recolor: color, ox: ox, oy: oy,
+                            x: 0, y: 0, r: r, sx: (entryDuration && entryAxis != "sy" ? 0 : sStart), sy: (entryDuration && entryAxis != "sx" ? 0 : sStart)
+                        }, {
+                            time: i, angle: 0, type: "deco", order: 3,
+                            id: particlePrefix + "_" + freeIndex + "_sprite",
+                            r: r + spin * duration, sx: (entryDuration || exitDuration) ? undefined : sEnd, sy: (entryDuration || exitDuration) ? undefined : sEnd,
+                            duration: duration
+                        }, {
+                            time: i + duration, angle: 0, type: "deco",
+                            id: particlePrefix + "_" + freeIndex + "_sprite",
+                            hide: true
+                        }),
+                            (entryDuration || exitDuration) && (
+                                events.push({
+                                    time: i + entryDuration, angle: 0, type: "deco",
+                                    id: particlePrefix + "_" + freeIndex + "_sprite",
+                                    sx: sEnd, sy: sEnd,
+                                    duration: duration - entryDuration - exitDuration
+                                })
+                            ),
+                            entryDuration && (
+                                events.push({
+                                    time: i, angle: 0, type: "deco", order: 3,
+                                    id: particlePrefix + "_" + freeIndex + "_sprite",
+                                    sx: sStart, sy: sStart,
+                                    duration: entryDuration, ease: entryEase
+                                })
+                            ),
+                            exitDuration && (
+                                events.push({
+                                    time: i + duration - exitDuration, angle: 0, type: "deco",
+                                    id: particlePrefix + "_" + freeIndex + "_sprite",
+                                    sx: exitAxis != "sy" ? 0 : sEnd, sy: exitAxis != "sx" ? 0 : sEnd,
+                                    duration: exitDuration, ease: exitEase
+                                })
+                            ),
+                            accelerationFactor && (
+                                events.push({
+                                    time: i, angle: 0, type: "deco", order: 1, hide: false,
+                                    id: particlePrefix + "_" + freeIndex + "_gravity", parentid: particlePrefix + "_" + freeIndex + "_normal",
+                                    x: 0, y: 0, sx: 0, r: 0
+                                }, {
+                                    time: i, angle: 0, type: "deco", order: 2,
+                                    id: particlePrefix + "_" + freeIndex + "_gravity",
+                                    x: cos(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2), y: sin(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2),
+                                    duration: particleDuration2, ease: "inQuad"
+                                }, {
+                                    time: i + particleDuration2, angle: 0, type: "deco",
+                                    id: particlePrefix + "_" + freeIndex + "_gravity",
+                                    hide: true
+                                })
+                            );
                     }
-                    if (spriteRotationFollowsMovement) { // r
-                        r = dir; // NOT YET
-                    } else {
-                        r = randomValue(rotation1, rotation2 - rotation1);
-                    }
-                    switch (scaleBehavior) { // s
-                        case "random": sEnd = randomValue(scaleEnd1, scaleEnd2 - scaleEnd1); break;
-                        case "relative": sEnd = (sStart - scaleStart1) / (scaleStart2 - scaleStart1) * (scaleEnd2 - scaleEnd1) + scaleEnd1; break;
-                        default: break;
-                    }
-                    events.push({
-                        time: i, angle: 0, type: "deco", order: 0, hide: true,
-                        id: particlePrefix + "_" + freeIndex + "_normal", parentid: parent,
-                        x: x, y: y, r: 0
-                    }, {
-                        time: i, angle: 0, type: "deco", order: 1,
-                        id: particlePrefix + "_" + freeIndex + "_normal",
-                        x: x + cos(-90 + dir) * v * duration, y: y + sin(-90 + dir) * v * duration,
-                        duration: duration, ease: movementEase
-                    }, {
-                        time: i, angle: 0, type: "deco", order: 2, hide: false,
-                        id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (accelerationFactor ? "_gravity" : "_normal"),
-                        sprite: sprite, recolor: color, ox: ox, oy: oy,
-                        x: 0, y: 0, r: r, sx: (entryDuration && entryAxis != "sy" ? 0 : sStart), sy: (entryDuration && entryAxis != "sx" ? 0 : sStart)
-                    }, {
-                        time: i, angle: 0, type: "deco", order: 3,
-                        id: particlePrefix + "_" + freeIndex + "_sprite",
-                        r: r + spin * duration, sx: (entryDuration || exitDuration) ? undefined : sEnd, sy: (entryDuration || exitDuration) ? undefined : sEnd,
-                        duration: duration
-                    }, {
-                        time: i + duration, angle: 0, type: "deco",
-                        id: particlePrefix + "_" + freeIndex + "_sprite",
-                        hide: true
-                    }),
-                        (entryDuration || exitDuration) && (
-                            events.push({
-                                time: i + entryDuration, angle: 0, type: "deco",
-                                id: particlePrefix + "_" + freeIndex + "_sprite",
-                                sx: sEnd, sy: sEnd,
-                                duration: duration - entryDuration - exitDuration
-                            })
-                        ),
-                        entryDuration && (
-                            events.push({
-                                time: i, angle: 0, type: "deco", order: 3,
-                                id: particlePrefix + "_" + freeIndex + "_sprite",
-                                sx: sStart, sy: sStart,
-                                duration: entryDuration, ease: entryEase
-                            })
-                        ),
-                        exitDuration && (
-                            events.push({
-                                time: i + duration - exitDuration, angle: 0, type: "deco",
-                                id: particlePrefix + "_" + freeIndex + "_sprite",
-                                sx: exitAxis != "sy" ? 0 : sEnd, sy: exitAxis != "sx" ? 0 : sEnd,
-                                duration: exitDuration, ease: exitEase
-                            })
-                        ),
-                        accelerationFactor && (
-                            events.push({
-                                time: i, angle: 0, type: "deco", order: 1, hide: false,
-                                id: particlePrefix + "_" + freeIndex + "_gravity", parentid: particlePrefix + "_" + freeIndex + "_normal",
-                                x: 0, y: 0, sx: 0, r: 0
-                            }, {
-                                time: i, angle: 0, type: "deco", order: 2,
-                                id: particlePrefix + "_" + freeIndex + "_gravity",
-                                x: cos(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2), y: sin(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2),
-                                duration: particleDuration2, ease: "inQuad"
-                            }, {
-                                time: i + particleDuration2, angle: 0, type: "deco",
-                                id: particlePrefix + "_" + freeIndex + "_gravity",
-                                hide: true
-                            })
-                        );
                 }
             }
         }]
@@ -970,14 +985,24 @@ const version = "3.1",
                         const fakeStart = onlyInPart ? event.time - spawnOffset : Math.max(event.time - spawnOffset, start), fakeEnd = Math.min(event.time, end);
                         switch (event.type) {
                             case "block":
-                                newFakeBlock(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - start)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomDirections ? randomValue(-75, 151) : 0, 0, radius, appearType, appearEase, appearLength);
+                                newFakeBlock(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - start)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomDirections ? randomValue(-75, 151) : 0, 0, radius, appearType, appearEase, appearLength, "block");
                                 for (let i = 0; i < fakes; i++) {
-                                    newFakeBlock(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
+                                    newFakeBlock(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearType, appearEase, appearLength, "block");
+                                } break;
+                            case "mine":
+                                newFakeBlock(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - start)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomDirections ? randomValue(-75, 151) : 0, 0, radius, appearType, appearEase, appearLength, "mine");
+                                for (let i = 0; i < fakes; i++) {
+                                    newFakeBlock(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearType, appearEase, appearLength, "mine");
                                 } break;
                             case "side":
                                 newFakeSide(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - start)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomDirections ? randomValue(-75, 151) : 0, 0, radius, appearType, appearEase, appearLength);
                                 for (let i = 0; i < fakes; i++) {
-                                    newFakeSide(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearEase, appearLength);
+                                    newFakeSide(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearType, appearEase, appearLength);
+                                } break;
+                            case "inverse":
+                                newFakeBlock(fakeStart, event.angle, (onlyInPart ? spawnOffset : Math.min(spawnOffset, event.time - start)) * speed * scrollSpeed, (event.time - fakeEnd) * speed * scrollSpeed, fakeEnd - fakeStart, parent, randomDirections ? randomValue(-75, 151) : 0, 0, radius, appearType, appearEase, appearLength, "inverse");
+                                for (let i = 0; i < fakes; i++) {
+                                    newFakeBlock(fakeStart, randomValue(0, 360), spawnOffset * speed * scrollSpeed, -spawnOffset * speed * scrollSpeed, spawnOffset * 2, parent, 0, randomValue(10, 190), radius, appearType, appearEase, appearLength, "inverse");
                                 } break;
                         }
                     }
@@ -1097,6 +1122,230 @@ const version = "3.1",
         after: () => { },
         functions: [],
         dontUseEvents: true
+    }, { // Piger's Request #2
+        name: "Piger's Request #2",
+        desc: "Circle Stream Generator is request #1\nThis one makes Jumpbeats autoplay when following a Stream and vice versa\nPiger knows that both will have the same bpm",
+        constants: [
+            { name: "chart", desc: "The chart file that your variant uses", type: "json", required: true, newRow: true },
+            { name: "tag", desc: "The tag file in your variant with half of the gameplay (make sure the Run Tag event is at beat 0)", type: "json", required: true },
+            { name: "paddleLife", desc: "How long the paddle should stay for", type: "json", required: true, newRow: true },
+            { name: "paddleWidth", desc: "How wide the paddle is normally", type: "json", required: true }
+        ],
+        before: () => {
+            constants.chart = constants.chart.sort((a, b) => a.time - b.time).filter(event => ["block", "inverse"].includes(event.type)),
+                constants.tag = constants.tag.sort((a, b) => a.time - b.time).filter(event => ["block", "inverse"].includes(event.type))
+            let time = -(10 ** 10);
+            while (constants.tag.some(event => event.time > time)) {
+                time = constants.tag.filter(event => event.time > time)[0].time;
+                const tagNow = constants.tag.filter(event => event.time == time),
+                    chartNow = constants.chart.filter(event => event.time == time);
+                if (chartNow.length > 0) {
+                    let tagAngle = normalizeAngle(Math.round(getA(tagNow.reduce((prev, event) => prev + sin(90 - event.angle), 0), tagNow.reduce((prev, event) => prev + cos(90 - event.angle), 0)) * 1e4) / 1e4),
+                        chartAngle = normalizeAngle(Math.round(getA(chartNow.reduce((prev, event) => prev + sin(90 - event.angle), 0), chartNow.reduce((prev, event) => prev + cos(90 - event.angle), 0)) * 1e4) / 1e4),
+                        tagLeftMost = tagAngle, tagRightMost = tagAngle, chartLeftMost = chartAngle, chartRightMost = chartAngle;
+                    // console.log("e")
+                    tagNow.forEach((event) => {
+                        // console.log(event, event.angle, sin(90 - event.angle), cos(90 - event.angle), getA(sin(90 - event.angle), cos(90 - event.angle)))
+                        if (compareAnglesLR(event.angle, tagAngle) == "left") {
+                            compareAnglesLR(event.angle, tagLeftMost) == "left" && (tagLeftMost = event.angle)
+                        } else {
+                            compareAnglesLR(event.angle, tagRightMost,) == "right" && (tagRightMost = event.angle)
+                        }
+                    }),
+                        // console.log(tagAngle, tagLeftMost, tagRightMost, tagNow, tagNow.reduce((prev, event) => prev + sin(event.angle), 0), tagNow.reduce((prev, event) => prev + cos(event.angle), 0)); return;
+                        chartNow.forEach((event) => {
+                            if (compareAnglesLR(event.angle, chartAngle) == "left") {
+                                compareAnglesLR(event.angle, chartLeftMost) == "left" && (chartLeftMost = event.angle)
+                            } else {
+                                compareAnglesLR(event.angle, chartRightMost) == "right" && (chartRightMost = event.angle)
+                            }
+                        }),
+                        tagLeftMost = normalizeAngle(-(tagLeftMost - tagAngle)), tagRightMost = normalizeAngle(tagRightMost - tagAngle),
+                        chartLeftMost = normalizeAngle(-(chartLeftMost - chartAngle)), chartRightMost = normalizeAngle(chartRightMost - chartAngle),
+                        tagLeftMost != tagRightMost && (console.log("I kindly curse you for making the notes not evenly spread out", tagAngle, tagLeftMost, tagRightMost)),
+                        chartLeftMost != chartRightMost && (console.log("I kindly curse you for making the notes not evenly spread out (2)", chartAngle, chartLeftMost, chartRightMost)),
+                        tagAngle += tagLeftMost - (tagLeftMost + tagRightMost) / 2, tagLeftMost = (tagLeftMost + tagRightMost) / 2,
+                        chartAngle += chartLeftMost - (chartLeftMost + chartRightMost) / 2, chartLeftMost = (chartLeftMost + chartRightMost) / 2,
+                        events.push({
+                            type: "paddles", time: time, angle: 0,
+                            paddle: 2, enabled: true,
+                            newAngle: tagAngle - chartAngle,
+                            newWidth: constants.paddleWidth - tagLeftMost * 2 + chartLeftMost * 2,
+                            duration: 0, ease: "linear"
+                        }, {
+                            type: "paddles", time: time + constants.paddleLife, angle: 0,
+                            paddle: 2, enabled: false,
+                            duration: 0, ease: "linear"
+                        }, {
+                            type: "paddles", time: time, angle: 0,
+                            paddle: 3, enabled: true,
+                            newAngle: chartAngle - tagAngle,
+                            newWidth: constants.paddleWidth - chartLeftMost * 2 + tagLeftMost * 2,
+                            duration: 0, ease: "linear"
+                        }, {
+                            type: "paddles", time: time + constants.paddleLife, angle: 0,
+                            paddle: 3, enabled: false,
+                            duration: 0, ease: "linear"
+                        }), console.log(tagLeftMost, chartLeftMost)
+                } else {
+                    console.log("EEEEEEEEEEEEEEEEEEEE")
+                    events.push({
+                        type: "paddles", time: time, angle: 0,
+                        paddle: 2, enabled: true,
+                        newAngle: 0,
+                        newWidth: 360,
+                        duration: 0, ease: "linear"
+                    }, {
+                        type: "paddles", time: time + constants.paddleLife, angle: 0,
+                        paddle: 2, enabled: false,
+                        duration: 0, ease: "linear"
+                    })
+                }
+            }
+            time = -(10 ** 10);
+            while (constants.chart.some(event => event.time > time)) {
+                time = constants.chart.filter(event => event.time > time)[0].time;
+                const tagNow = constants.tag.filter(event => event.time == time);
+                if (tagNow.length == 0) {
+                    console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAaa")
+                    events.push({
+                        type: "paddles", time: time, angle: 0,
+                        paddle: 2, enabled: true,
+                        newAngle: 0,
+                        newWidth: 360,
+                        duration: 0, ease: "linear"
+                    }, {
+                        type: "paddles", time: time + constants.paddleLife, angle: 0,
+                        paddle: 2, enabled: false,
+                        duration: 0, ease: "linear"
+                    })
+                }
+            }
+        },
+        after: () => { },
+        functions: []
+    }, { // paddleMerger
+        name: "paddleMerger",
+        desc: "Merges not easing paddles together to reduce annoying barelies",
+        constants: [
+            { name: "level", desc: "The level file that your variant uses", type: "json", required: true, newRow: true }
+        ],
+        before: () => {
+            const paddles = [{ id: 1, enabled: true, angle: 0, width: 70, lastUpdate: -(10 ** 10) }],
+                paddleEvents = (constants.level.events !== undefined ? constants.level.events : constants.level).sort((a, b) => a.time - b.time).filter(event => event.type == "paddles"),
+                paddlesUsed = paddleEvents.reduce((prev, event) => { event.paddle !== 0 && !prev.includes(event.paddle) && (prev.push(event.paddle)); return prev }, [1]),
+                mergedPaddles = [];
+            let time = -(10 ** 10);
+            function getPaddleIndex(id) { return paddles.indexOf(paddles.filter(event => event.id == id)[0]); }
+            function mergePaddles(id, id2) {
+                mergedPaddles.every(merged => !merged.includes(id)) && (mergedPaddles.push([id]));
+                if (mergedPaddles.every(merged => !merged.includes(id2))) {
+                    mergedPaddles[mergedPaddles.indexOf(mergedPaddles.filter(merged => merged.includes(id))[0])].push(id2);
+                } else {
+                    mergedPaddles[mergedPaddles.indexOf(mergedPaddles.filter(merged => merged.includes(id))[0])].push(...mergedPaddles[mergedPaddles.indexOf(mergedPaddles.filter(merged => merged.includes(id2))[0])]);
+                }
+            }
+            while (paddleEvents.some(event => event.time > time)) {
+                time = paddleEvents.filter(event => event.time > time)[0].time;
+                const paddleEventsNow = paddleEvents.filter(event => event.time == time).sort((a, b) => a.order - b.order);
+                paddleEventsNow.forEach(event => {
+                    getPaddleIndex(event.paddle) == -1 && (paddles.push({ id: event.paddle, enabled: false, angle: 0, width: 70 }));
+                    const paddle = paddles[getPaddleIndex(event.paddle)];
+                    if (mergedPaddles.filter(merged => merged.includes(paddle.id))) {
+                        mergedPaddles.splice(mergedPaddles.indexOf(mergedPaddles.filter(merged => merged.includes(paddle.id))[0]), 1)[0]?.forEach(paddleID => {
+                            let paddle2 = paddles[getPaddleIndex(paddleID)];
+                            (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                time: time, angle: 0, type: "paddles", order: (event.order || 0) - 1,
+                                paddle: paddle2.id,
+                                enabled: paddle2.overrideEnabled !== undefined ? paddle2.enabled : undefined,
+                                newAngle: paddle2.overrideAngle !== undefined ? paddle2.angle : undefined,
+                                newWidth: paddle2.overrideWidth !== undefined ? paddle2.width : undefined
+                            }),
+                                paddle2.overrideEnabled = undefined, paddle2.overrideAngle = undefined, paddle2.overrideWidth = undefined;
+                        })
+                    }
+                    paddle.lastUpdate = event.time, paddle.lastOrder = event.order,
+                        event.enabled !== undefined && (paddle.enabled = event.enabled),
+                        event.newAngle !== undefined && (paddle.angle = event.newAngle),
+                        event.newWidth !== undefined && (paddle.width = event.newWidth),
+                        paddleEventsNow.filter(deco2 => event !== deco2 && event.id == deco2.id && event.enabled === false && deco2.enabled === true && !(event.order < deco2.order)).forEach(deco2 => { console.log(event.time, event.order, deco2.order) });
+                });
+                let merges = 0;
+                for (let i = 1; i < paddles.length; i++) {
+                    const paddle = paddles[i];
+                    if (paddle.overrideEnabled !== undefined ? paddle.overrideEnabled : paddle.enabled) {
+                        let pa = normalizeAngle(paddle.overrideAngle !== undefined ? paddle.overrideAngle : paddle.angle),
+                            pw = paddle.overrideWidth !== undefined ? paddle.overrideWidth : paddle.width,
+                            pa1 = pa - pw / 2, pa2 = pa + pw / 2;
+                        for (let j = 0; j < i; j++) {
+                            const paddle2 = paddles[j];
+                            if (paddle2.overrideEnabled !== undefined ? paddle2.overrideEnabled : paddle2.enabled) {
+                                let p2a = normalizeAngle(paddle2.overrideAngle !== undefined ? paddle2.overrideAngle : paddle2.angle),
+                                    p2w = paddle2.overrideWidth !== undefined ? paddle2.overrideWidth : paddle2.width,
+                                    p2a1 = p2a - p2w / 2, p2a2 = p2a + p2w / 2;
+                                switch (true) {
+                                    case (angleWithin(pa1, p2a1, p2a2) && angleWithin(pa2, p2a1, p2a2)): merges++,
+                                        paddle.overrideEnabled = false, mergePaddles(paddle2.id, paddle.id),
+                                        (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                            time: time, angle: 0, type: "paddles", order: paddle.lastUpdate == time ? (paddle.lastOrder || 0) + merges : (merges > 1 ? merges : undefined),
+                                            paddle: paddle.id,
+                                            enabled: false
+                                        }); console.log("qqq", time); break;
+                                    case angleWithin(p2a1, pa1, pa2) && angleWithin(p2a2, pa1, pa2): merges++,
+                                        paddle.overrideEnabled = false, paddle2.overrideAngle = pa, paddle2.overrideWidth = pw, mergePaddles(paddle2.id, paddle.id),
+                                        (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                            time: time, angle: 0, type: "paddles", order: paddle.lastUpdate == time ? (paddle.lastOrder || 0) + merges : (merges > 1 ? merges : undefined),
+                                            paddle: paddle.id,
+                                            enabled: false
+                                        }),
+                                        (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                            time: time, angle: 0, type: "paddles", order: paddle2.lastUpdate == time ? (paddle2.lastOrder || 0) + merges : (merges > 1 ? merges : undefined),
+                                            paddle: paddle2.id,
+                                            newAngle: pa, newWidth: pw
+                                        }); console.log("www", time); break;
+                                    case (angleWithin(pa1, p2a1, p2a2) && angleWithin(p2a2, pa1, pa2)): merges++,
+                                        paddle.overrideEnabled = false, paddle2.overrideAngle = p2a1 + normalizeAngle(pa2 - p2a1) / 2, paddle2.overrideWidth = normalizeAngle(pa2 - p2a1), mergePaddles(paddle2.id, paddle.id),
+                                        (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                            time: time, angle: 0, type: "paddles", order: paddle.lastUpdate == time ? (paddle.lastOrder || 0) + merges : (merges > 1 ? merges : undefined),
+                                            paddle: paddle.id,
+                                            enabled: false
+                                        }),
+                                        (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                            time: time, angle: 0, type: "paddles", order: paddle2.lastUpdate == time ? (paddle2.lastOrder || 0) + merges : (merges > 1 ? merges : undefined),
+                                            paddle: paddle2.id,
+                                            newAngle: p2a1 + normalizeAngle(pa2 - p2a1) / 2, newWidth: normalizeAngle(pa2 - p2a1)
+                                        }); console.log("eee", time, normalizeAngle(pa2 - p2a1), pa2, p2a1); break;
+                                    case (angleWithin(p2a1, pa1, pa2) && angleWithin(pa2, p2a1, p2a2)): merges++,
+                                        paddle.overrideEnabled = false, paddle2.overrideAngle = p2a2 - normalizeAngle(p2a2 - pa1) / 2, paddle2.overrideWidth = normalizeAngle(p2a2 - pa1), mergePaddles(paddle2.id, paddle.id),
+                                        (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                            time: time, angle: 0, type: "paddles", order: paddle.lastUpdate == time ? (paddle.lastOrder || 0) + merges : (merges > 1 ? merges : undefined),
+                                            paddle: paddle.id,
+                                            enabled: false
+                                        }),
+                                        (constants.level.events !== undefined ? constants.level.events : constants.level).push({
+                                            time: time, angle: 0, type: "paddles", order: paddle2.lastUpdate == time ? (paddle2.lastOrder || 0) + merges : (merges > 1 ? merges : undefined),
+                                            paddle: paddle2.id,
+                                            newAngle: p2a2 - normalizeAngle(p2a2 - pa1) / 2, newWidth: normalizeAngle(p2a2 - pa1)
+                                        }); console.log("rrr", time, normalizeAngle(p2a2 - pa1), p2a2, pa1); break;
+                                }
+                                if (time == 7) {
+                                    console.log(paddle.id, paddle2.id, " p1 ", pa1, pa2, " p2 ", p2a1, p2a2, " pa ", p2a2 - normalizeAngle(p2a2 - pa1) / 2, p2a1 + normalizeAngle(pa2 - p2a1) / 2)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            console.log(constants.level)
+            resultDiv.innerText = JSON.stringify(constants.level)
+            console.log(paddlesUsed);
+            // resultDiv.innerText = "Visible decos:\n" + paddles.filter(paddle => paddle.enabled && paddle.angle != 0 && paddle.width != 0).map(paddle => ["id:", paddle.id, "angle:", paddle.angle, "width:", paddle.width, "lastUpdate:", paddle.lastUpdate].join(" ")).join("\n"),
+            //     resultDiv2.innerText = "Unhidden scale 0 decos:\n" + paddles.filter(paddle => paddle.enabled && !(paddle.angle != 0 && paddle.width != 0)).map(paddle => ["id:", paddle.id, "angle:", paddle.angle, "width:", paddle.width, "lastUpdate:", paddle.lastUpdate].join(" ")).join("\n"),
+            //     console.log("Amount of unhidden decos:", paddles.filter(paddle => paddle.enabled).length, "/", paddles.length);
+        },
+        after: () => { },
+        functions: [],
+        dontUseEvents: true
     }],
     eases = ["linear", "inSine", "outSine", "inOutSine", "inQuad", "outQuad", "inOutQuad", "inCubic", "outCubic", "inOutCubic", "inQuart", "outQuart", "inOutQuart", "inQuint", "outQuint", "inOutQuint", "inExpo", "outExpo", "inOutExpo", "inCirc", "outCirc", "inOutCirc", "inElastic", "outElastic", "inOutElastic", "inBack", "outBack", "inOutBack"],
     grades = [
@@ -1117,7 +1366,7 @@ const version = "3.1",
         { acc: -999, name: 'F' }
     ];
 let openTool = tools[0],
-    constants = {}, abort;
+    constants = {}, abort, easterEggs = { sponsor: false };
 //
 
 
@@ -1126,12 +1375,13 @@ let events = [], lastAngle = 0, lastDir = 1;
 function normalizeAngle(d) { return ((d % 360) + 360) % 360; }
 function compareAnglesLR(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (180 > tempDiff && tempDiff >= 0 ? "left" : "right"); }
 function compareAnglesFB(dMain, dOther) { let tempDiff = normalizeAngle(dOther - dMain); return (90 > tempDiff || tempDiff >= 270 ? "front" : "back"); }
+function angleWithin(aMain, aSmallest, aLargest) { return aLargest - aSmallest >= 360 || (normalizeAngle(aMain - aSmallest) <= aLargest - aSmallest) }
 function getA(x, y) { return Math.atan2(y, x) / Math.PI * 180; }
 function getD(x, y) { return Math.hypot(x, y); }
 function cos(d) { return Math.cos(d * (Math.PI / 180)); }
 function sin(d) { return Math.sin(d * (Math.PI / 180)); }
 
-function randomValue(min, range) { return Math.floor(Math.random() * (range)) + min; }
+function randomValue(min, range, multiplier = 1) { return multiplier == "none" ? Math.random() * range + min : Math.floor(Math.random() * range * multiplier) / multiplier + min; }
 function newAngle(snap, minDist, maxDist) {
     snap = 360 / snap; let angle2 = []; for (let i = 0; i < 360; i += snap) { angle2.push(i); }
     angle2 = angle2.filter(angle => !((minDist !== undefined && (normalizeAngle(angle - lastAngle) < minDist || normalizeAngle(angle - lastAngle) > 360 - minDist)) || (maxDist !== undefined && (normalizeAngle(angle - lastAngle) > maxDist && normalizeAngle(angle - lastAngle) < 360 - maxDist))));
@@ -1154,25 +1404,25 @@ function getTextLength(text) { return text.split("").reduce((length, letter) => 
 // Fake Block Utility
 const fakeBlockPrefix = "fakeBlock";
 let fakeBlocks = [];
-function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength) {
+function newFakeBlock(time, r, xStart, x, duration, parent, bonusR, bonusX, radius, appearType, appearEase, appearLength, sprite) {
     const start = time, end = time + duration;
     let freeIndex = fakeBlocks.indexOf(fakeBlocks.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
     freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
         startOrder = 0, endOrder = 0,
         fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
-        radius === undefined && (radius = 51)
+        radius === undefined && (radius = sprite == "inverse" ? 22 : 51);
     const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
     bonusX === undefined && (bonusX = 0);
     events.push({
         time: time, angle: 0, type: "deco", order: 0, hide: false,
         id: fakeBlockPrefix + "_" + freeIndex, parentid: parent,
-        sprite: "block.png",
-        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
-        ox: 9, oy: 9, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined)
+        sprite: sprite + ".png",
+        x: cos(r - 90) * (radius + bonusX) + (sprite == "inverse" ? -1 : 1) * cos(angle - 90) * xStart + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + (sprite == "inverse" ? -1 : 1) * sin(angle - 90) * xStart + (parent === undefined ? 180 : 0),
+        ox: sprite == "block" ? 9 : 8, oy: sprite == "block" ? 9 : 8, sx: (appearLength && appearType != "sy" ? 0 : undefined), sy: (appearLength && appearType != "sx" ? 0 : undefined)
     }, {
         time: time, angle: 0, type: "deco", order: 1,
         id: fakeBlockPrefix + "_" + freeIndex,
-        x: cos(r - 90) * (radius + bonusX) + cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + sin(angle - 90) * x + (parent === undefined ? 180 : 0),
+        x: cos(r - 90) * (radius + bonusX) + (sprite == "inverse" ? -1 : 1) * cos(angle - 90) * x + (parent === undefined ? 300 : 0), y: sin(r - 90) * (radius + bonusX) + (sprite == "inverse" ? -1 : 1) * sin(angle - 90) * x + (parent === undefined ? 180 : 0),
         duration: duration
     }, {
         time: time + duration, angle: 0, type: "deco",
@@ -1192,7 +1442,7 @@ function newFakeSide(time, r, xStart, x, duration, parent, bonusR, bonusX, radiu
     freeIndex == -1 && (freeIndex = fakeBlocks.length, fakeBlocks.push([])),
         startOrder = 0, endOrder = 0,
         fakeBlocks[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder }),
-        radius === undefined && (radius = 36.5)
+        radius === undefined && (radius = 36.5);
     const angle = bonusX ? r + randomValue(-0.5, 2) * 2 * 90 : (bonusR ? r + bonusR : r);
     bonusX === undefined && (bonusX = 0);
     events.push({
@@ -1442,13 +1692,16 @@ function loadTool(toolName) {
 }
 function convertInput(element, type, dontForce) {
     if (!dontForce && (type == "checkbox" ? element.checked == false : element.value == "")) { return undefined; }
+    function checkSponsor(string) {
+        easterEggs.sponsor && string.includes("WHENP16FL7") && (document.body.classList.add("lightMode"), easterEggs.sponsor = false, window.alert(`This collab is sponsored by Penta's Beattools. Have you ever been in need of things the editor just won't provide ? Well, with Penta's Beattools, many things, such as a particle generator, a bpm corrector, and many more become available to you !\nClick the download link in the description and use code "WHENP16FL7" to get 50 % off on your first purchase!`));
+    }
     switch (type) {
         case "number": if (dontForce && element.value == "") { return undefined; } return Number(element.value);
-        case "string": return element.value;
+        case "string": checkSponsor(element.value); return element.value;
         case "boolean": return element.checked;
         case "select": return element.value;
         case "numberSelect": return Number(element.value);
-        case "json": if (dontForce && element.value == "") { return undefined; } try { return JSON.parse(element.value); } catch (error) { element.style.backgroundColor = "red", resultDiv.innerText = "Invalid JSON"; throw new Error(["INVALID JSON", element.value, type].join(" ")); }
+        case "json": if (dontForce && element.value == "") { return undefined; } try { checkSponsor(element.value); return JSON.parse(element.value); } catch (error) { element.style.backgroundColor = "red", resultDiv.innerText = "Invalid JSON"; throw new Error(["INVALID JSON", element.value, type].join(" ")); }
         case "ease": return element.value;
         case "grade": return element.value;
         default: throw new Error(["DEFAULT PART OF SWITCH REACHED", type].join(" "));
@@ -1552,6 +1805,7 @@ function loadInput(data) {
 // Init
 resultDiv.innerText = "Hover over some tool, constant, event and parameter names to get tooltips\nThis is version " + version,
     resultDiv2.innerText = "The console may give you additional information when running",
+    Math.random() < 1 / 1000 && (document.body.classList.add("lightMode")),
     tools.forEach(tool => {
         const option = document.createElement("option");
         option.innerText = beautifyText(tool.name),
@@ -1568,7 +1822,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
         addEvent(func);
     },
     runButton.onclick = () => {
-        events = [], texts = [], fakeBlocks = [], particles = [], gravityParticles = [], constants = {}, abort = false,
+        events = [], texts = [], fakeBlocks = [], particles = [], gravityParticles = [], constants = {}, abort = false, easterEggs.sponsor = true,
             resultDiv.innerText = "Empty", resultDiv2.innerText = "Empty";
         let i = 0;
         for (let j = 0; j < constantsDiv.childElementCount; j++) {
@@ -1629,7 +1883,7 @@ resultDiv.innerText = "Hover over some tool, constant, event and parameter names
             resultDiv.innerText = JSON.stringify(events),
                 console.log("Amount of events:", events.length);
         }
-        runButton.style.backgroundColor = "green",
+        runButton.style.backgroundColor = "green", easterEggs.sponsor = false,
             setTimeout(() => {
                 runButton.style.backgroundColor = "";
             }, 1000);
