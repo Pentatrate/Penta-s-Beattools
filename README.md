@@ -37,6 +37,8 @@ Will get updated to include other tools.
 
 		![image](https://github.com/user-attachments/assets/f4a94209-4fa8-47d7-ac4f-e76db634b2bf)
 
+	3. If when opening "Penta's Beattools.html" you see the words "Javascript not working..." then maybe opening "Penta's Beattools Alternative.html" can fix the issue.
+
 2. Select the tool you want to use.
 3. This step is tool specific. Enter your wished values.
 4. Press "Run" and copy the events into an empty tag file ("tags/*tagName*.json") and save it.
