@@ -21,6 +21,7 @@ eventually?
 10. Beatblock Level Fixer (WIP)
 11. Beatblock Gameplay Merger (AKA: Piger's Request #2)
 12. Beatblock Paddle Merger (Doesnt work with duration!)
+13. Beatblock Played Levels Analyser
 
 ## How to use (Penta's Beattools)
 Will get updated to include other tools.
