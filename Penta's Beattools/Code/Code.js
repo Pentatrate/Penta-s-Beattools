@@ -1,4 +1,4 @@
-const version = "5.0",
+const version = "5.1",
 	toolSelect = document.querySelector("#selectTool"),
 	toolButton = document.querySelector("#changeTool"),
 	pasteButton = document.querySelector("#pastePrompt"),
@@ -831,15 +831,25 @@ const version = "5.0",
 			name: "particleEmitter",
 			desc: "Emits particles",
 			params: [
-				{ name: "spawnTiming", desc: "Whether to spawn particles over time or burst them (spawn lots at once)", type: "select", values: ["particlesPerBeat", "particleeveryBeat", "particleBurstRepeat"], required: true, newRow: true },
-				{ name: "emitterStart", desc: "", type: "number", required: false },
+				{ name: "spawnTiming", desc: "Whether to spawn particles over time or burst them (spawn lots at once)", type: "select", values: ["particlesPerBeat", "particleEveryBeat", "particleBurstRepeat", "chart"], required: true, newRow: true },
+				{ name: "emitterStart", desc: "", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particlesPerBeat", "particleEveryBeat", "particleBurstRepeat"] },
 				{ name: "emitterEnd", desc: "", type: "number", required: true, showWhenParam: "spawnTiming", showWhenValue: ["particlesPerBeat", "particleEveryBeat"] },
-				{ name: "particlesPerBeat", desc: "", type: "number", required: true, showWhenParam: "spawnTiming", showWhenValue: ["particlesPerBeat", "particleEveryBeat"] },
+				{ name: "particlesPerBeat", desc: "", type: "number", required: true, showWhenParam: "spawnTiming", showWhenValue: ["particlesPerBeat"] },
 				{ name: "repeatAmount", desc: "Work as in the game with repeating eases", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particleBurstRepeat"] },
 				{ name: "repeatDelay", desc: "Time between particles spawning", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particleEveryBeat", "particleBurstRepeat"] },
-				{ name: "particleBurstAmount", desc: "How many particle per burst", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particleBurstRepeat"] },
-				{ name: "particleDuration1", desc: "The range of how long particles stay", type: "number", required: true, newRow: true },
-				{ name: "particleDuration2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+				{ name: "particleBurstAmount", desc: "How many particle per burst", type: "number", required: false, showWhenParam: "spawnTiming", showWhenValue: ["particleBurstRepeat", "chart"] },
+				{ name: "chart", desc: "The contents of your chart file. Also accepts tag files", type: "json", required: true, showWhenParam: "spawnTiming", showWhenValue: ["chart"] },
+				{ name: "emitterMovementAngle", desc: "Direction of emitter movement", type: "number", required: false, newRow: true },
+				{ name: "emitterVelocity", desc: "Emitter speed", type: "number", required: false },
+				{ name: "spawnShapeBurst", desc: "What shape the burst will generate in\nAll options other than Point will require four parameters\nPoint: Requires X1 and X2\n-Points: Creates a shape between (X1 | Y1) and (X2 | Y2)\n-Size: Creates a shape with middle (X1 | Y1) and width X2 / height Y2\nLine Dir: Creates a line from (X1 | Y1) in the direction X2 with length Y2", type: "select", values: ["point", "linePoints", "lineDirBurst", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"], required: true, showWhenParam: "spawnTiming", showWhenValue: ["particleBurstRepeat"], newRow: true },
+				{ name: "xBurst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["point", "linePoints", "lineDirBurst", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"] },
+				{ name: "yBurst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["point", "linePoints", "lineDirBurst", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"] },
+				{ name: "x2Burst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["linePoints", "rectanglePoints", "circlePoints"] },
+				{ name: "y2Burst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["linePoints", "rectanglePoints", "circlePoints"] },
+				{ name: "angleBurst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["lineDir"] },
+				{ name: "lengthBurst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["lineDir"] },
+				{ name: "widthBurst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["rectangleSize", "circleSize"] },
+				{ name: "heightBurst", desc: "", type: "number", required: true, showWhenParam: "spawnShapeBurst", showWhenValue: ["rectangleSize", "circleSize"] },
 				{ name: "spawnShape", desc: "What shape the particles will generate in\nAll options other than Point will require four parameters\nPoint: Requires X1 and X2\n-Points: Creates a shape between (X1 | Y1) and (X2 | Y2)\n-Size: Creates a shape with middle (X1 | Y1) and width X2 / height Y2\nLine Dir: Creates a line from (X1 | Y1) in the direction X2 with length Y2", type: "select", values: ["point", "linePoints", "lineDir", "rectanglePoints", "rectangleSize", "circlePoints", "circleSize"], required: true, newRow: true },
 				{ name: "x", desc: "", type: "number", required: true },
 				{ name: "y", desc: "", type: "number", required: true },
@@ -849,6 +859,8 @@ const version = "5.0",
 				{ name: "length", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["lineDir"] },
 				{ name: "width", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["rectangleSize", "circleSize"] },
 				{ name: "height", desc: "", type: "number", required: true, showWhenParam: "spawnShape", showWhenValue: ["rectangleSize", "circleSize"] },
+				{ name: "particleDuration1", desc: "The range of how long particles stay", type: "number", required: true, newRow: true },
+				{ name: "particleDuration2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
 				{ name: "spriteRotationFollowsMovement", desc: "DOESNT WORK WITH GRAVITY! Particles rotate in the direction they're moving", type: "boolean", required: false, newRow: true },
 				{ name: "rotation1", desc: "", type: "number", required: false, hideWhenParam: "spriteRotationFollowsMovement", hideWhenValue: [true] },
 				{ name: "rotation2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false, hideWhenParam: "spriteRotationFollowsMovement", hideWhenValue: [true] },
@@ -862,10 +874,16 @@ const version = "5.0",
 				{ name: "accelerationFactor", desc: "Strength of acceleration", type: "number", required: false, newRow: true },
 				{ name: "accelerationAngle", desc: "Direction of acceleration", type: "number", required: false, hideWhenParam: "accelerationFactor", hideWhenValue: [0] },
 				{ name: "scaleBehavior", desc: "Whether smaller particles will stay smaller (Relative) or can grow to be bigger (Random)\nNoticable with different start- and endscale ranges", type: "select", values: ["random", "relative"], required: true, newRow: true },
-				{ name: "scaleStart1", desc: "", type: "number", required: true },
-				{ name: "scaleStart2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
-				{ name: "scaleEnd1", desc: "", type: "number", required: false },
-				{ name: "scaleEnd2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+				{ name: "xScaleStart1", desc: "", type: "number", required: true },
+				{ name: "xScaleStart2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+				{ name: "xScaleEnd1", desc: "", type: "number", required: false },
+				{ name: "xScaleEnd2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false },
+				{ name: "toggleBothScaleAxis", desc: "", type: "boolean", required: false, newRow: true },
+				{ name: "yScaleStart1", desc: "", type: "number", required: false, showWhenParam: "toggleBothScaleAxis", showWhenValue: [true] },
+				{ name: "yScaleStart2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false, showWhenParam: "toggleBothScaleAxis", showWhenValue: [true] },
+				{ name: "yScaleEnd1", desc: "", type: "number", required: false, showWhenParam: "toggleBothScaleAxis", showWhenValue: [true] },
+				{ name: "yScaleEnd2", desc: "Leave empty for the same value\nThis one should have a larger value", type: "number", required: false, showWhenParam: "toggleBothScaleAxis", showWhenValue: [true] },
+				{ name: "scaleEase", desc: "Ease option for scaling", type: "ease", required: false },
 				{ name: "entryDuration", desc: "Duration of the entry animation", type: "number", required: false, newRow: true },
 				{ name: "entryAxis", desc: "Determines the axis for the entry animation\nLeave empty to scale in both axis", type: "select", values: ["sx", "sy"], required: false, hideWhenParam: "entryDuration", hideWhenValue: [0] },
 				{ name: "entryEase", desc: "Ease of the entry animation", type: "ease", required: false, hideWhenParam: "entryDuration", hideWhenValue: [0] },
@@ -876,12 +894,16 @@ const version = "5.0",
 				{ name: "ox", desc: "", type: "number", required: false },
 				{ name: "oy", desc: "", type: "number", required: false },
 				{ name: "colors", desc: "Chooses randomly between the list to recolor sprite\nSeparate with ','\nExamples: '0,1,2,3', '-1', '0,0,0,1'", type: "string", required: false },
-				{ name: "parent", desc: "", type: "string", required: false, newRow: true }
+				{ name: "drawLayer", desc: "", type: "select", values: ["bg", "fg", "ontop"], required: false, newRow: true },
+				{ name: "drawOrder", desc: "", type: "number", required: false },
+				{ name: "parent", desc: "", type: "string", required: false }
 			],
-			function: (spawnTiming, emitterStart, emitterEnd, particlesPerBeat, repeatAmount, repeatDelay, particleBurstAmount, particleDuration1, particleDuration2, spawnShape, x1, y1, x2, y2, angle, length, width, height, spriteRotationFollowsMovement, rotation1, rotation2, spin1, spin2, movementAngle1, movementAngle2, velocity1, velocity2, movementEase, accelerationFactor, accelerationAngle, scaleBehavior, scaleStart1, scaleStart2, scaleEnd1, scaleEnd2, entryDuration, entryAxis, entryEase, exitDuration, exitAxis, exitEase, sprite, ox, oy, colors, parent) => {
+			function: (spawnTiming, emitterStart, emitterEnd, particlesPerBeat, repeatAmount, repeatDelay, particleBurstAmount, chart, emitterMovementAngle, emitterVelocity, spawnShapeBurst, x1Burst, y1Burst, x2Burst, y2Burst, angleBurst, lengthBurst, widthBurst, heightBurst, spawnShape, x1, y1, x2, y2, angle, length, width, height, particleDuration1, particleDuration2, spriteRotationFollowsMovement, rotation1, rotation2, spin1, spin2, movementAngle1, movementAngle2, velocity1, velocity2, movementEase, accelerationFactor, accelerationAngle, scaleBehavior, xScaleStart1, xScaleStart2, xScaleEnd1, xScaleEnd2, toggleBothScaleAxis, yScaleStart1, yScaleStart2, yScaleEnd1, yScaleEnd2, scaleEase, entryDuration, entryAxis, entryEase, exitDuration, exitAxis, exitEase, sprite, ox, oy, colors, drawLayer, drawOrder, parent) => {
 				emitterStart === undefined && (emitterStart = 0),
 					repeatAmount === undefined && (repeatAmount = 0),
 					repeatDelay === undefined && (repeatDelay = 1),
+					emitterMovementAngle === undefined && (emitterMovementAngle = 0),
+					emitterVelocity === undefined && (emitterVelocity = 0),
 					particleBurstAmount === undefined && (particleBurstAmount = 1),
 					particleDuration2 === undefined && (particleDuration2 = particleDuration1),
 					spriteRotationFollowsMovement === undefined && (spriteRotationFollowsMovement = "random"),
@@ -894,129 +916,282 @@ const version = "5.0",
 					velocity1 === undefined && (velocity1 = 0),
 					velocity2 === undefined && (velocity2 = velocity1),
 					accelerationAngle === undefined && (accelerationAngle = 180),
-					scaleStart2 === undefined && (scaleStart2 = scaleStart1),
-					scaleEnd1 === undefined && (scaleEnd1 = scaleStart1),
-					scaleEnd2 === undefined && (scaleEnd2 = scaleEnd1),
+					xScaleStart2 === undefined && (xScaleStart2 = xScaleStart1),
+					xScaleEnd1 === undefined && (xScaleEnd1 = xScaleStart1),
+					xScaleEnd2 === undefined && (xScaleEnd2 = xScaleEnd1),
+					yScaleStart1 === undefined && (yScaleStart1 = xScaleStart1),
+					yScaleStart2 === undefined && (yScaleStart2 = yScaleStart1),
+					yScaleEnd1 === undefined && (yScaleEnd1 = yScaleStart1),
+					yScaleEnd2 === undefined && (yScaleEnd2 = yScaleEnd1),
 					entryDuration === undefined && (entryDuration = 0),
 					exitDuration === undefined && (exitDuration = 0),
 					colors = (colors === undefined ? [] : colors.split(",").map(number => Number(number.trim())).filter(number => !isNaN(number) && typeof number == "number")), colors.length == 0 && (colors = [-1]);
-				switch (spawnTiming) {
-					case "particlesPerBeat": repeatDelay = 1 / particlesPerBeat; break;
-					case "particleBurstRepeat": emitterEnd = repeatDelay * (repeatAmount + 1); break;
-				}
-				let duration, x, y, spin, dir, v, r, sStart, sEnd, color, random;
-				for (i = emitterStart; i <= emitterEnd; i += repeatDelay) {
-					for (let j = 0; j < particleBurstAmount; j++) {
-						// duration, dir, v, s, color
-						duration = randomValue(particleDuration1, particleDuration2 - particleDuration1, "none"),
-							spin = randomValue(spin1, spin2 - spin1, "none"),
-							dir = randomValue(movementAngle1, movementAngle2 - movementAngle1, "none"),
-							v = randomValue(velocity1, velocity2 - velocity1, "none"),
-							sStart = randomValue(scaleStart1, scaleStart2 - scaleStart1, "none"),
-							color = randomFromArray(colors),
-							random = Math.random();
-						console.log(spin)
-						// startIndex
-						const start = i, end = i + (accelerationFactor ? particleDuration2 : duration);
-						let freeIndex = particles.indexOf(particles.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
-						freeIndex == -1 && (freeIndex = particles.length, particles.push([])),
-							startOrder = 0, endOrder = 0,
-							particles[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder });
-						switch (spawnShape) { // x, y
-							case "point": x = x1, y = y1; break;
-							case "linePoints":
-								if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-								const angle2 = getA(x2 - x1, y2 - y1), dist = getD(x2 - x1, y2 - y1);
-								x = x1 + cos(angle2) * dist * random, y = y1 + sin(angle2) * dist * random;
-								break;
-							case "lineDir":
-								x = x1 + cos(-90 + angle) * length * random, y = y1 + sin(-90 + angle) * length * random; break;
-							case "rectanglePoints":
-								if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-								x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
-							case "rectangleSize":
-								x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); break;
-							case "circlePoints":
-								if (x2 === undefined || y2 === undefined) { resultDiv.innerText = "Empty X2/Y2 parameters", abort = true; return; }
-								do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getD((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
-							case "circleSize":
-								do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getD((x - x1) / width, (y - y1) / height) > 0.5); break;
-							default: abort = true; return;
-						}
-						if (spriteRotationFollowsMovement) { // r
-							r = dir; // NOT YET
-						} else {
-							r = randomValue(rotation1, rotation2 - rotation1, "none");
-						}
-						switch (scaleBehavior) { // s
-							case "random": sEnd = randomValue(scaleEnd1, scaleEnd2 - scaleEnd1, "none"); break;
-							case "relative": sEnd = (sStart - scaleStart1) / (scaleStart2 - scaleStart1) * (scaleEnd2 - scaleEnd1) + scaleEnd1; break;
-							default: break;
-						}
-						events.push({
-							time: i, angle: 0, type: "deco", order: 0, hide: true,
-							id: particlePrefix + "_" + freeIndex + "_normal", parentid: parent,
-							x: x, y: y, r: 0
-						}, {
-							time: i, angle: 0, type: "deco", order: 1,
-							id: particlePrefix + "_" + freeIndex + "_normal",
-							x: x + cos(-90 + dir) * v * duration, y: y + sin(-90 + dir) * v * duration,
-							duration: duration, ease: movementEase
-						}, {
-							time: i, angle: 0, type: "deco", order: 2, hide: false,
-							id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (accelerationFactor ? "_gravity" : "_normal"),
-							sprite: sprite, recolor: color, ox: ox, oy: oy,
-							x: 0, y: 0, r: r, sx: (entryDuration && entryAxis != "sy" ? 0 : sStart), sy: (entryDuration && entryAxis != "sx" ? 0 : sStart)
-						}, {
-							time: i, angle: 0, type: "deco", order: 3,
-							id: particlePrefix + "_" + freeIndex + "_sprite",
-							r: r + spin * duration, sx: (entryDuration || exitDuration) ? undefined : sEnd, sy: (entryDuration || exitDuration) ? undefined : sEnd,
-							duration: duration
-						}, {
-							time: i + duration, angle: 0, type: "deco",
-							id: particlePrefix + "_" + freeIndex + "_sprite",
-							hide: true
-						}),
-							(entryDuration || exitDuration) && (
+				let duration, x, y, spin, dir, v, r, sStart, sStart2, sEnd, sEnd2, color, random, burstX = 0, burstY = 0;
+				if (spawnTiming == "chart") {
+					chart.forEach(event => {
+						if (["block", "hold"].includes(event.type)) {
+							i = event.time, burstX = cos(event.angle - 90) * 51, burstY = sin(event.angle - 90) * 51
+							for (let j = 0; j < particleBurstAmount; j++) {
+								// duration, dir, v, s, color
+								duration = randomValue(particleDuration1, particleDuration2 - particleDuration1, "none"),
+									spin = randomValue(spin1, spin2 - spin1, "none"),
+									dir = randomValue(movementAngle1, movementAngle2 - movementAngle1, "none"),
+									v = randomValue(velocity1, velocity2 - velocity1, "none"),
+									sStart = randomValue(xScaleStart1, xScaleStart2 - xScaleStart1, "none"),
+									sStart2 = randomValue(yScaleStart1, yScaleStart2 - yScaleStart1, "none"),
+									color = randomFromArray(colors),
+									random = Math.random();
+								// startIndex
+								const start = i, end = i + (accelerationFactor ? particleDuration2 : duration);
+								let freeIndex = particles.indexOf(particles.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+								freeIndex == -1 && (freeIndex = particles.length, particles.push([])),
+									startOrder = 0, endOrder = 0,
+									particles[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder });
+								switch (spawnShape) { // x, y
+									case "point": x = x1, y = y1; break;
+									case "linePoints":
+										const angle2 = getA(x2 - x1, y2 - y1), dist = getD(x2 - x1, y2 - y1);
+										x = x1 + cos(angle2) * dist * random, y = y1 + sin(angle2) * dist * random; break;
+									case "lineDir":
+										x = x1 + cos(-90 + angle) * length * random, y = y1 + sin(-90 + angle) * length * random; break;
+									case "rectanglePoints":
+										x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
+									case "rectangleSize":
+										x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); break;
+									case "circlePoints":
+										do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getD((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
+									case "circleSize":
+										do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getD((x - x1) / width, (y - y1) / height) > 0.5); break;
+									default: abort = true; return;
+								}
+								if (spriteRotationFollowsMovement) { // r
+									r = dir; // NOT YET
+								} else {
+									r = randomValue(rotation1, rotation2 - rotation1, "none");
+								}
+								switch (scaleBehavior) { // s
+									case "random": sEnd = randomValue(xScaleEnd1, xScaleEnd2 - xScaleEnd1, "none"), sEnd2 = randomValue(yScaleEnd1, yScaleEnd2 - yScaleEnd1, "none"); break;
+									case "relative": sEnd = (sStart - xScaleStart1) / (xScaleStart2 - xScaleStart1) * (xScaleEnd2 - xScaleEnd1) + xScaleEnd1,
+										sEnd != sEnd && (sEnd = randomValue(xScaleEnd1, xScaleEnd2 - xScaleEnd1, "none")),
+										sEnd2 = (sStart2 - yScaleStart1) / (yScaleStart2 - yScaleStart1) * (yScaleEnd2 - yScaleEnd1) + yScaleEnd1,
+										sEnd2 != sEnd2 && (sEnd2 = randomValue(yScaleEnd1, yScaleEnd2 - yScaleEnd1, "none"));
+										break;
+									default: break;
+								}
 								events.push({
-									time: i + entryDuration, angle: 0, type: "deco",
-									id: particlePrefix + "_" + freeIndex + "_sprite",
-									sx: sEnd, sy: sEnd,
-									duration: duration - entryDuration - exitDuration
-								})
-							),
-							entryDuration && (
-								events.push({
+									time: i, angle: 0, type: "deco", order: 0, hide: true,
+									id: particlePrefix + "_" + freeIndex + "_normal", parentid: parent,
+									x: x + burstX + cos(-90 + emitterMovementAngle) * emitterVelocity * i, y: y + burstY + sin(-90 + emitterMovementAngle) * emitterVelocity * i, r: 0
+								}, {
+									time: i, angle: 0, type: "deco", order: 1,
+									id: particlePrefix + "_" + freeIndex + "_normal",
+									x: x + burstX + cos(-90 + emitterMovementAngle) * emitterVelocity * i + cos(-90 + dir) * v * duration, y: y + burstY + sin(-90 + emitterMovementAngle) * emitterVelocity * i + sin(-90 + dir) * v * duration,
+									duration: duration, ease: movementEase
+								}, {
+									time: i, angle: 0, type: "deco", order: 2, hide: false,
+									id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (accelerationFactor ? "_gravity" : "_normal"),
+									sprite: sprite, recolor: color, ox: ox, oy: oy, drawLayer: drawLayer, drawOrder: drawOrder,
+									x: 0, y: 0, r: r, sx: (entryDuration && entryAxis != "sy" ? 0 : sStart), sy: (entryDuration && entryAxis != "sx" ? 0 : (toggleBothScaleAxis ? sStart2 : sStart))
+								}, {
 									time: i, angle: 0, type: "deco", order: 3,
 									id: particlePrefix + "_" + freeIndex + "_sprite",
-									sx: sStart, sy: sStart,
-									duration: entryDuration, ease: entryEase
-								})
-							),
-							exitDuration && (
-								events.push({
-									time: i + duration - exitDuration, angle: 0, type: "deco",
+									r: r + spin * duration,
+									duration: duration
+								}, {
+									time: i, angle: 0, type: "deco", order: 3,
 									id: particlePrefix + "_" + freeIndex + "_sprite",
-									sx: exitAxis != "sy" ? 0 : sEnd, sy: exitAxis != "sx" ? 0 : sEnd,
-									duration: exitDuration, ease: exitEase
-								})
-							),
-							accelerationFactor && (
-								events.push({
-									time: i, angle: 0, type: "deco", order: 1, hide: false,
-									id: particlePrefix + "_" + freeIndex + "_gravity", parentid: particlePrefix + "_" + freeIndex + "_normal",
-									x: 0, y: 0, sx: 0, r: 0
+									sx: (entryDuration || exitDuration) ? undefined : sEnd, sy: (entryDuration || exitDuration) ? undefined : (toggleBothScaleAxis ? sEnd2 : sEnd),
+									duration: duration, ease: scaleEase
 								}, {
-									time: i, angle: 0, type: "deco", order: 2,
-									id: particlePrefix + "_" + freeIndex + "_gravity",
-									x: cos(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2), y: sin(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2),
-									duration: particleDuration2, ease: "inQuad"
-								}, {
-									time: i + particleDuration2, angle: 0, type: "deco",
-									id: particlePrefix + "_" + freeIndex + "_gravity",
+									time: i + duration, angle: 0, type: "deco",
+									id: particlePrefix + "_" + freeIndex + "_sprite",
 									hide: true
-								})
-							);
+								}),
+									(entryDuration || exitDuration) && (
+										events.push({
+											time: i + entryDuration, angle: 0, type: "deco",
+											id: particlePrefix + "_" + freeIndex + "_sprite",
+											sx: sEnd, sy: toggleBothScaleAxis ? sEnd2 : sEnd,
+											duration: duration - entryDuration - exitDuration
+										})
+									),
+									entryDuration && (
+										events.push({
+											time: i, angle: 0, type: "deco", order: 3,
+											id: particlePrefix + "_" + freeIndex + "_sprite",
+											sx: sStart, sy: toggleBothScaleAxis ? sStart2 : sStart,
+											duration: entryDuration, ease: entryEase
+										})
+									),
+									exitDuration && (
+										events.push({
+											time: i + duration - exitDuration, angle: 0, type: "deco",
+											id: particlePrefix + "_" + freeIndex + "_sprite",
+											sx: exitAxis != "sy" ? 0 : sEnd, sy: exitAxis != "sx" ? 0 : (toggleBothScaleAxis ? sEnd2 : sEnd),
+											duration: exitDuration, ease: exitEase
+										})
+									),
+									accelerationFactor && (
+										events.push({
+											time: i, angle: 0, type: "deco", order: 1, hide: false,
+											id: particlePrefix + "_" + freeIndex + "_gravity", parentid: particlePrefix + "_" + freeIndex + "_normal",
+											x: 0, y: 0, sx: 0, r: 0
+										}, {
+											time: i, angle: 0, type: "deco", order: 2,
+											id: particlePrefix + "_" + freeIndex + "_gravity",
+											x: cos(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2), y: sin(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2),
+											duration: particleDuration2, ease: "inQuad"
+										}, {
+											time: i + particleDuration2, angle: 0, type: "deco",
+											id: particlePrefix + "_" + freeIndex + "_gravity",
+											hide: true
+										})
+									);
+							}
+						}
+					})
+				} else {
+					switch (spawnTiming) {
+						case "particlesPerBeat": repeatDelay = 1 / particlesPerBeat; break;
+						case "particleBurstRepeat": emitterEnd = emitterStart + repeatDelay * (repeatAmount + 1); break;
+					}
+					for (i = emitterStart; i <= emitterEnd; i += repeatDelay) {
+						if (spawnTiming == "particleBurstRepeat") {
+							switch (spawnShapeBurst) { // burstX, burstY
+								case "point": burstX = x1Burst, burstY = y1Burst; break;
+								case "linePoints":
+									const angle2 = getA(x2Burst - x1Burst, y2Burst - y1Burst), dist = getD(x2Burst - x1Burst, y2Burst - y1Burst);
+									burstX = x1Burst + cos(angle2) * dist * random, burstY = y1Burst + sin(angle2) * dist * random; break;
+								case "lineDir":
+									burstX = x1Burst + cos(-90 + angleBurst) * lengthBurst * random, burstY = y1Burst + sin(-90 + angleBurst) * lengthBurst * random; break;
+								case "rectanglePoints":
+									burstX = x1Burst + (x2Burst - x1Burst) * Math.random(), burstY = y1Burst + (y2Burst - y1Burst) * Math.random(); break;
+								case "rectangleSize":
+									burstX = x1Burst - widthBurst / 2 + widthBurst * Math.random(), burstY = y1Burst - heightBurst / 2 + heightBurst * Math.random(); break;
+								case "circlePoints":
+									do { burstX = x1Burst + (x2Burst - x1Burst) * Math.random(), burstY = y1Burst + (y2Burst - y1Burst) * Math.random(); } while (getD((burstX - average(x1Burst, x2Burst)) / (x2Burst - x1Burst), (burstY - average(y1Burst, y2Burst)) / (y2Burst - y1Burst)) > 0.5); break;
+								case "circleSize":
+									do { burstX = x1Burst - widthBurst / 2 + widthBurst * Math.random(), burstY = y1Burst - heightBurst / 2 + heightBurst * Math.random(); } while (getD((burstX - x1Burst) / widthBurst, (burstY - y1Burst) / heightBurst) > 0.5); break;
+								default: abort = true; return;
+							}
+						}
+						for (let j = 0; j < particleBurstAmount; j++) {
+							// duration, dir, v, s, color
+							duration = randomValue(particleDuration1, particleDuration2 - particleDuration1, "none"),
+								spin = randomValue(spin1, spin2 - spin1, "none"),
+								dir = randomValue(movementAngle1, movementAngle2 - movementAngle1, "none"),
+								v = randomValue(velocity1, velocity2 - velocity1, "none"),
+								sStart = randomValue(xScaleStart1, xScaleStart2 - xScaleStart1, "none"),
+								sStart2 = randomValue(yScaleStart1, yScaleStart2 - yScaleStart1, "none"),
+								color = randomFromArray(colors),
+								random = Math.random();
+							// startIndex
+							const start = i, end = i + (accelerationFactor ? particleDuration2 : duration);
+							let freeIndex = particles.indexOf(particles.filter(fake => fake.every(active => end < active.start || active.end < start))[0]), startOrder, endOrder;
+							freeIndex == -1 && (freeIndex = particles.length, particles.push([])),
+								startOrder = 0, endOrder = 0,
+								particles[freeIndex].push({ start: start, end: end, startOrder: startOrder, endOrder: endOrder });
+							switch (spawnShape) { // x, y
+								case "point": x = x1, y = y1; break;
+								case "linePoints":
+									const angle2 = getA(x2 - x1, y2 - y1), dist = getD(x2 - x1, y2 - y1);
+									x = x1 + cos(angle2) * dist * random, y = y1 + sin(angle2) * dist * random; break;
+								case "lineDir":
+									x = x1 + cos(-90 + angle) * length * random, y = y1 + sin(-90 + angle) * length * random; break;
+								case "rectanglePoints":
+									x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); break;
+								case "rectangleSize":
+									x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); break;
+								case "circlePoints":
+									do { x = x1 + (x2 - x1) * Math.random(), y = y1 + (y2 - y1) * Math.random(); } while (getD((x - average(x1, x2)) / (x2 - x1), (y - average(y1, y2)) / (y2 - y1)) > 0.5); break;
+								case "circleSize":
+									do { x = x1 - width / 2 + width * Math.random(), y = y1 - height / 2 + height * Math.random(); } while (getD((x - x1) / width, (y - y1) / height) > 0.5); break;
+								default: abort = true; return;
+							}
+							if (spriteRotationFollowsMovement) { // r
+								r = dir; // NOT YET
+							} else {
+								r = randomValue(rotation1, rotation2 - rotation1, "none");
+							}
+							switch (scaleBehavior) { // s
+								case "random": sEnd = randomValue(xScaleEnd1, xScaleEnd2 - xScaleEnd1, "none"), sEnd2 = randomValue(yScaleEnd1, yScaleEnd2 - yScaleEnd1, "none"); break;
+								case "relative": sEnd = (sStart - xScaleStart1) / (xScaleStart2 - xScaleStart1) * (xScaleEnd2 - xScaleEnd1) + xScaleEnd1,
+									sEnd != sEnd && (sEnd = randomValue(xScaleEnd1, xScaleEnd2 - xScaleEnd1, "none")),
+									sEnd2 = (sStart2 - yScaleStart1) / (yScaleStart2 - yScaleStart1) * (yScaleEnd2 - yScaleEnd1) + yScaleEnd1,
+									sEnd2 != sEnd2 && (sEnd2 = randomValue(yScaleEnd1, yScaleEnd2 - yScaleEnd1, "none"));
+									break;
+								default: break;
+							}
+							events.push({
+								time: i, angle: 0, type: "deco", order: 0, hide: true,
+								id: particlePrefix + "_" + freeIndex + "_normal", parentid: parent,
+								x: x + burstX + cos(-90 + emitterMovementAngle) * emitterVelocity * i, y: y + burstY + sin(-90 + emitterMovementAngle) * emitterVelocity * i, r: 0
+							}, {
+								time: i, angle: 0, type: "deco", order: 1,
+								id: particlePrefix + "_" + freeIndex + "_normal",
+								x: x + burstX + cos(-90 + emitterMovementAngle) * emitterVelocity * i + cos(-90 + dir) * v * duration, y: y + burstY + sin(-90 + emitterMovementAngle) * emitterVelocity * i + sin(-90 + dir) * v * duration,
+								duration: duration, ease: movementEase
+							}, {
+								time: i, angle: 0, type: "deco", order: 2, hide: false,
+								id: particlePrefix + "_" + freeIndex + "_sprite", parentid: particlePrefix + "_" + freeIndex + (accelerationFactor ? "_gravity" : "_normal"),
+								sprite: sprite, recolor: color, ox: ox, oy: oy, drawLayer: drawLayer, drawOrder: drawOrder,
+								x: 0, y: 0, r: r, sx: (entryDuration && entryAxis != "sy" ? 0 : sStart), sy: (entryDuration && entryAxis != "sx" ? 0 : (toggleBothScaleAxis ? sStart2 : sStart))
+							}, {
+								time: i, angle: 0, type: "deco", order: 3,
+								id: particlePrefix + "_" + freeIndex + "_sprite",
+								r: r + spin * duration,
+								duration: duration
+							}, {
+								time: i, angle: 0, type: "deco", order: 3,
+								id: particlePrefix + "_" + freeIndex + "_sprite",
+								sx: (entryDuration || exitDuration) ? undefined : sEnd, sy: (entryDuration || exitDuration) ? undefined : (toggleBothScaleAxis ? sEnd2 : sEnd),
+								duration: duration, ease: scaleEase
+							}, {
+								time: i + duration, angle: 0, type: "deco",
+								id: particlePrefix + "_" + freeIndex + "_sprite",
+								hide: true
+							}),
+								(entryDuration || exitDuration) && (
+									events.push({
+										time: i + entryDuration, angle: 0, type: "deco",
+										id: particlePrefix + "_" + freeIndex + "_sprite",
+										sx: sEnd, sy: toggleBothScaleAxis ? sEnd2 : sEnd,
+										duration: duration - entryDuration - exitDuration
+									})
+								),
+								entryDuration && (
+									events.push({
+										time: i, angle: 0, type: "deco", order: 3,
+										id: particlePrefix + "_" + freeIndex + "_sprite",
+										sx: sStart, sy: toggleBothScaleAxis ? sStart2 : sStart,
+										duration: entryDuration, ease: entryEase
+									})
+								),
+								exitDuration && (
+									events.push({
+										time: i + duration - exitDuration, angle: 0, type: "deco",
+										id: particlePrefix + "_" + freeIndex + "_sprite",
+										sx: exitAxis != "sy" ? 0 : sEnd, sy: exitAxis != "sx" ? 0 : (toggleBothScaleAxis ? sEnd2 : sEnd),
+										duration: exitDuration, ease: exitEase
+									})
+								),
+								accelerationFactor && (
+									events.push({
+										time: i, angle: 0, type: "deco", order: 1, hide: false,
+										id: particlePrefix + "_" + freeIndex + "_gravity", parentid: particlePrefix + "_" + freeIndex + "_normal",
+										x: 0, y: 0, sx: 0, r: 0
+									}, {
+										time: i, angle: 0, type: "deco", order: 2,
+										id: particlePrefix + "_" + freeIndex + "_gravity",
+										x: cos(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2), y: sin(-90 + accelerationAngle) * accelerationFactor * (particleDuration2 ** 2),
+										duration: particleDuration2, ease: "inQuad"
+									}, {
+										time: i + particleDuration2, angle: 0, type: "deco",
+										id: particlePrefix + "_" + freeIndex + "_gravity",
+										hide: true
+									})
+								);
+						}
 					}
 				}
 			}
@@ -1871,7 +2046,7 @@ function loadInput(data) {
 	for (let j = 0; j < constantsDiv.childElementCount && i < data.constants.length; j++) {
 		const row = constantsDiv.children[j];
 		for (let k = 1; k < row.childElementCount && i < data.constants.length; k += 2) {
-			if (data.constants[i]) {
+			if (data.constants[i] !== null) {
 				switch (typeof data.constants[i]) {
 					case "boolean": row.children[k].checked = Boolean(data.constants[i]); break;
 					case "object": row.children[k].value = JSON.stringify(data.constants[i]); break;
@@ -1887,7 +2062,7 @@ function loadInput(data) {
 		for (let j = 2; j < eventsDiv.lastElementChild.childElementCount - 1; j++) {
 			const row = eventsDiv.lastElementChild.children[j];
 			for (let k = 1; k < row.childElementCount; k += 2) {
-				if (event.params[i]) {
+				if (event.params[i] !== null) {
 					switch (typeof event.params[i]) {
 						case "boolean": row.children[k].checked = Boolean(event.params[i]); break;
 						case "object": row.children[k].value = JSON.stringify(event.params[i]); break;
